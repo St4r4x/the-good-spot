@@ -5,6 +5,13 @@ versionnage [semver](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-10
+
+### Changed
+- Le skill `new-feature` et `CONTRIBUTING.md` décident maintenant la version
+  et écrivent l'entrée `CHANGELOG.md` finale dans la PR de la feature
+  elle-même, avant merge — plus de PR séparée de bump changelog après coup.
+
 ## [0.2.0] - 2026-07-10
 
 ### Added
