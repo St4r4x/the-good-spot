@@ -5,6 +5,15 @@ versionnage [semver](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-10
+
+### Added
+- Job CI `secrets` (gitleaks) qui bloque le merge si un secret est détecté
+  dans le diff.
+- Règle de bump semver explicite (major/minor/patch) dans le skill
+  `new-feature` et `CONTRIBUTING.md`, pour ne plus laisser le choix de
+  version à l'interprétation.
+
 ## [0.2.1] - 2026-07-10
 
 ### Changed

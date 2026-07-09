@@ -46,17 +46,25 @@ one catches a different class of mistake.
    - Update `README.md` if behavior, endpoints, or setup steps changed.
    - Add the changelog entry directly under a new `## [X.Y.Z] - YYYY-MM-DD`
      section in `CHANGELOG.md` (Keep a Changelog format: `### Added` /
-     `### Changed` / `### Fixed` / `### Removed`), bumping patch/minor/major
-     per semver based on the change. Do not park it under `## [Unreleased]`
-     — decide the version now, in this PR, so there is no separate
-     "bump changelog" PR after merge.
+     `### Changed` / `### Fixed` / `### Removed`). Do not park it under
+     `## [Unreleased]` — decide the version now, in this PR, so there is no
+     separate "bump changelog" PR after merge.
+   - **Version bump rule (apply the highest that matches, no judgment call):**
+     - **major** — any change that breaks an existing `/isochrone` or
+       `/housing` request/response shape, or removes a documented behavior.
+     - **minor** — a new user-facing capability (new endpoint, new query
+       param, new UI control) or new internal tooling/process (CI job, test
+       suite, skill) — additive, nothing existing breaks.
+     - **patch** — bug fix, dependency bump, doc/process wording fix,
+       refactor with no behavior change.
    - Commit these doc/changelog changes as part of the same feature branch,
      before running step 8.
 
 8. **Finish the branch.** Invoke `superpowers:finishing-a-development-branch`
-   to open a PR from `feature/<topic>` into `main`. Wait for the CI workflow
-   (`.github/workflows/ci.yml`) to go green before proposing merge — do not
-   merge on red or pending CI.
+   to open a PR from `feature/<topic>` into `main`. Wait for all required
+   checks in `.github/workflows/ci.yml` to go green before proposing merge —
+   `secrets` (gitleaks scan), `backend`, `frontend`. Do not merge on red or
+   pending CI.
 
 9. **Release after merge.** Once the PR (which already carries the final
    `CHANGELOG.md` section from step 7) is merged into `main`:
