@@ -18,12 +18,15 @@
    (injection, secrets exposés, entrées non validées) — en particulier tout
    ce qui touche `backend/main.py` (clé API Geoapify) ou les entrées
    utilisateur (adresses, query params).
-7. **Documentation** : mettre à jour `README.md` si le comportement ou l'API
-   change, et ajouter une entrée dans `CHANGELOG.md` sous `## [Unreleased]`.
+7. **Documentation et changelog, avant d'ouvrir la PR** : mettre à jour
+   `README.md` si le comportement ou l'API change, et ajouter l'entrée
+   directement dans une nouvelle section `## [X.Y.Z] - YYYY-MM-DD` de
+   `CHANGELOG.md` (pas sous `## [Unreleased]`) — la version est décidée dans
+   cette même branche, pour éviter une PR de rattrapage après le merge.
 8. **Pull request** vers `main` — la CI (`.github/workflows/ci.yml`) doit
    être verte avant merge.
-9. **Release** : après merge, tag semver (`vX.Y.Z`) et GitHub Release reprenant
-   le contenu de `CHANGELOG.md`.
+9. **Release** : après merge, tag semver (`vX.Y.Z`, la même version que celle
+   déjà présente dans `CHANGELOG.md`) et GitHub Release reprenant ce contenu.
 
 Si tu utilises Claude Code, le skill `.claude/skills/new-feature/SKILL.md`
 automatise ce cycle de bout en bout.

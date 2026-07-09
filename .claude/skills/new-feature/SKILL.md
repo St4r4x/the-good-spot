@@ -42,21 +42,27 @@ one catches a different class of mistake.
    it must never leak to the client or logs) and any new user-supplied input
    (addresses, query params) reaching an external HTTP call.
 
-7. **Update docs.**
+7. **Update docs and changelog — before opening the PR, not after.**
    - Update `README.md` if behavior, endpoints, or setup steps changed.
-   - Add an entry under `## [Unreleased]` in `CHANGELOG.md` (Keep a Changelog
-     format: `### Added` / `### Changed` / `### Fixed` / `### Removed`).
+   - Add the changelog entry directly under a new `## [X.Y.Z] - YYYY-MM-DD`
+     section in `CHANGELOG.md` (Keep a Changelog format: `### Added` /
+     `### Changed` / `### Fixed` / `### Removed`), bumping patch/minor/major
+     per semver based on the change. Do not park it under `## [Unreleased]`
+     — decide the version now, in this PR, so there is no separate
+     "bump changelog" PR after merge.
+   - Commit these doc/changelog changes as part of the same feature branch,
+     before running step 8.
 
 8. **Finish the branch.** Invoke `superpowers:finishing-a-development-branch`
    to open a PR from `feature/<topic>` into `main`. Wait for the CI workflow
    (`.github/workflows/ci.yml`) to go green before proposing merge — do not
    merge on red or pending CI.
 
-9. **Release after merge.** Once the PR is merged into `main`:
-   - Move the `## [Unreleased]` entries in `CHANGELOG.md` under a new
-     `## [X.Y.Z] - YYYY-MM-DD` section (bump patch/minor/major per semver
-     based on the change).
-   - `git tag vX.Y.Z && git push origin vX.Y.Z`
+9. **Release after merge.** Once the PR (which already carries the final
+   `CHANGELOG.md` section from step 7) is merged into `main`:
+   - `git checkout main && git pull`
+   - `git tag vX.Y.Z && git push origin vX.Y.Z` (same X.Y.Z as the changelog
+     section merged in step 7/8)
    - `gh release create vX.Y.Z --notes-from-tag` or paste the changelog
      section as release notes.
 
