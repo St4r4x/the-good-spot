@@ -23,8 +23,19 @@
    directement dans une nouvelle section `## [X.Y.Z] - YYYY-MM-DD` de
    `CHANGELOG.md` (pas sous `## [Unreleased]`) — la version est décidée dans
    cette même branche, pour éviter une PR de rattrapage après le merge.
+
+   Règle de bump semver (prendre la plus haute qui s'applique) :
+   - **major** : casse la forme d'une requête/réponse `/isochrone` ou
+     `/housing` existante, ou supprime un comportement documenté.
+   - **minor** : nouvelle capacité utilisateur (endpoint, paramètre, contrôle
+     UI) ou nouvel outillage/process interne (job CI, suite de tests, skill)
+     — additif, rien d'existant ne casse.
+   - **patch** : correction de bug, bump de dépendance, correction de
+     formulation doc/process, refactor sans changement de comportement.
+
 8. **Pull request** vers `main` — la CI (`.github/workflows/ci.yml`) doit
-   être verte avant merge.
+   être verte avant merge : jobs `secrets` (scan gitleaks, aucun secret
+   commité), `backend`, `frontend`.
 9. **Release** : après merge, tag semver (`vX.Y.Z`, la même version que celle
    déjà présente dans `CHANGELOG.md`) et GitHub Release reprenant ce contenu.
 
