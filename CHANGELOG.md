@@ -5,9 +5,12 @@ versionnage [semver](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-10
+
 ### Added
 - Pipeline de contribution : tests (pytest, Vitest), CI GitHub Actions,
   skill Claude Code `new-feature`, `CONTRIBUTING.md`.
+- Protection de la branche `main` : merge bloqué si la CI n'est pas verte.
 
 ## [0.1.0] - 2026-07-10
 
