@@ -8,7 +8,7 @@ export function Panel({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(true);
 
   return (
-    <div className="absolute inset-x-0 bottom-0 z-10 flex max-h-[70dvh] flex-col rounded-t-xl bg-card shadow-[0_2px_12px_oklch(22%_0.01_220/0.12)] md:inset-x-auto md:top-4 md:bottom-auto md:left-4 md:max-h-[calc(100dvh-2rem)] md:w-[380px] md:rounded-xl">
+    <div className="absolute inset-x-0 bottom-0 z-10 flex max-h-[70dvh] flex-col rounded-t-xl bg-card shadow-floating md:inset-x-auto md:top-4 md:bottom-auto md:left-4 md:max-h-[calc(100dvh-2rem)] md:w-[380px] md:rounded-xl">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

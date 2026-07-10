@@ -5,6 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* DESIGN.md "Floating Panel" shadow — the only shadow in the chrome. */
+  --shadow-floating: 0 2px 12px oklch(22% 0.01 220 / 0.12);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
@@ -134,5 +136,5 @@
 
 .leaflet-popup-content-wrapper {
   border-radius: 8px;
-  box-shadow: 0 2px 12px oklch(22% 0.01 220 / 0.12);
+  box-shadow: var(--shadow-floating);
 }

@@ -10,7 +10,7 @@ const ENTRIES = [
 
 export function MapLegend() {
   return (
-    <div className="rounded-lg bg-card/95 px-3 py-2 text-xs text-foreground shadow-[0_2px_12px_oklch(22%_0.01_220/0.12)]">
+    <div className="rounded-lg bg-card/95 px-3 py-2 text-xs text-foreground shadow-floating">
       <ul className="flex flex-col gap-1">
         {ENTRIES.map(({ color, label }) => (
           <li key={label} className="flex items-center gap-2">
