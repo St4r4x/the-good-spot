@@ -5,6 +5,27 @@ versionnage [semver](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-10
+
+### Added
+- Panneau latéral flottant (bottom-sheet repliable sur mobile) regroupant les
+  deux étapes : lieux de travail puis test de logement.
+- Liste des logements testés dans le panneau : statut dans/hors zone, temps
+  vers chaque lieu, suppression, recentrage de la carte au clic.
+- Légende des zones sur la carte.
+- État d'accueil à la première visite expliquant le fonctionnement en 3 étapes.
+
+### Changed
+- Modes de transport en boutons-toggles avec icônes (au lieu de checkboxes).
+- Adresses résolues affichées sous chaque champ ; erreurs affichées inline
+  dans le panneau.
+- Popups de la carte stylés, sans emoji.
+
+### Fixed
+- La police Figtree est maintenant réellement appliquée (variable CSS
+  `--font-sans` jamais branchée).
+- Le contenu des popups Leaflet est échappé (adresse résolue externe).
+
 ## [0.3.0] - 2026-07-10
 
 ### Added

@@ -3,7 +3,7 @@ import { Figtree } from "next/font/google";
 import "./globals.css";
 
 const figtree = Figtree({
-  variable: "--font-geist-sans",
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
