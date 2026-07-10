@@ -4,9 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { TravelMode } from "@/lib/api";
+import {
+  WORKPLACES_STORAGE_KEY,
+  parseSavedWorkplaces,
+  serializeWorkplaces,
+} from "@/lib/workplaces";
 import { useState } from "react";
-
-const STORAGE_KEY = "isochrone-workplaces";
 
 const TRAVEL_MODE_LABELS: Record<TravelMode, string> = {
   transit: "Transports en commun",
@@ -15,40 +18,17 @@ const TRAVEL_MODE_LABELS: Record<TravelMode, string> = {
   drive: "Voiture",
 };
 
-type SavedWorkplaces = {
-  address1: string;
-  address2: string;
-  minutes: string;
-  modes: TravelMode[];
-};
-
 type WorkplaceFormProps = {
   onSubmit: (address1: string, address2: string, minutes: number, modes: TravelMode[]) => void;
   isLoading: boolean;
 };
 
-function readSavedWorkplaces(): SavedWorkplaces {
-  const defaults: SavedWorkplaces = {
-    address1: "",
-    address2: "",
-    minutes: "30",
-    modes: ["transit"],
-  };
-  if (typeof window === "undefined") return defaults;
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return defaults;
-  try {
-    const parsed = { ...defaults, ...JSON.parse(raw) };
-    if (!Array.isArray(parsed.modes) || parsed.modes.length === 0) parsed.modes = defaults.modes;
-    return parsed;
-  } catch {
-    // localStorage content is user-editable; a corrupt value just falls back to defaults.
-    return defaults;
-  }
-}
-
 export function WorkplaceForm({ onSubmit, isLoading }: WorkplaceFormProps) {
-  const [saved] = useState(readSavedWorkplaces);
+  const [saved] = useState(() =>
+    parseSavedWorkplaces(
+      typeof window === "undefined" ? null : localStorage.getItem(WORKPLACES_STORAGE_KEY)
+    )
+  );
   const [address1, setAddress1] = useState(saved.address1);
   const [address2, setAddress2] = useState(saved.address2);
   const [minutes, setMinutes] = useState(saved.minutes);
@@ -64,8 +44,8 @@ export function WorkplaceForm({ onSubmit, isLoading }: WorkplaceFormProps) {
     e.preventDefault();
     if (modes.length === 0) return;
     localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ address1, address2, minutes, modes })
+      WORKPLACES_STORAGE_KEY,
+      serializeWorkplaces({ address1, address2, minutes, modes })
     );
     onSubmit(address1, address2, Number(minutes), modes);
   }
