@@ -11,14 +11,8 @@ export type WorkResult = {
   polygon: PolygonFeature;
 };
 
-export type HousingMarker = {
-  lat: number;
-  lon: number;
-  inZone: boolean;
-  resolvedAddress: string;
-  timeToWork1Minutes: number;
-  timeToWork2Minutes: number;
-};
+export type { HousingMarker } from "@/lib/housing";
+import type { HousingMarker } from "@/lib/housing";
 
 type IsochroneMapProps = {
   work1: WorkResult | null;

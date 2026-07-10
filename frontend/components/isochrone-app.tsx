@@ -5,7 +5,8 @@ import { Card } from "@/components/ui/card";
 import { HousingForm } from "@/components/housing-form";
 import { WorkplaceForm } from "@/components/workplace-form";
 import { ApiError, fetchHousing, fetchIsochrone, type TravelMode } from "@/lib/api";
-import { computeIntersection, computeUnion, isPointInPolygon, type PolygonFeature } from "@/lib/geo";
+import { computeIntersection, computeUnion, type PolygonFeature } from "@/lib/geo";
+import { buildHousingMarker } from "@/lib/housing";
 import type { HousingMarker, WorkResult } from "@/components/map/isochrone-map";
 import dynamic from "next/dynamic";
 import { useState } from "react";
@@ -74,23 +75,7 @@ export function IsochroneApp() {
       const results = await Promise.all(
         modes.map((m) => fetchHousing(address, work1, work2, m))
       );
-      const best = results[0];
-      const bestTimeToWork1 = Math.min(...results.map((r) => r.time_to_work1_minutes));
-      const bestTimeToWork2 = Math.min(...results.map((r) => r.time_to_work2_minutes));
-      const inZone = intersection
-        ? isPointInPolygon([best.lon, best.lat], intersection)
-        : false;
-      setHousingMarkers((prev) => [
-        ...prev,
-        {
-          lat: best.lat,
-          lon: best.lon,
-          inZone,
-          resolvedAddress: best.resolved_address,
-          timeToWork1Minutes: bestTimeToWork1,
-          timeToWork2Minutes: bestTimeToWork2,
-        },
-      ]);
+      setHousingMarkers((prev) => [...prev, buildHousingMarker(results, intersection)]);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Une erreur est survenue.");
     } finally {
