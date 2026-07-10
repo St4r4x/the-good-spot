@@ -9,7 +9,7 @@ neutres teintés froids, Figtree, flat-by-default, la carte est le produit) et
 
 ---
 
-## PR 1 — `feature/app-ux-overhaul` (version 0.3.0)
+## PR 1 — `feature/app-ux-overhaul` (version 0.4.0)
 
 ### Layout
 
@@ -20,8 +20,8 @@ neutres teintés froids, Figtree, flat-by-default, la carte est le produit) et
   (voir plus bas), étape 1, étape 2, liste des logements testés.
 - Mobile (<768 px) : le même panneau devient un bottom-sheet fixé en bas,
   repliable/dépliable **au tap** sur une poignée (pas de gesture de drag, pas de
-  lib). Déplié : `max-height ~70dvh`, scroll interne. Replié : poignée + titre
-  de l'étape courante.
+  lib). Déplié : `max-height ~70dvh`, scroll interne. Replié : en-tête seul
+  (titre de l'app + poignée).
 
 ### Étape 1 · Vos lieux de travail
 
@@ -84,7 +84,7 @@ neutres teintés froids, Figtree, flat-by-default, la carte est le produit) et
 
 ---
 
-## PR 2 — `feature/landing-page` (version 0.4.0)
+## PR 2 — `feature/landing-page` (version 0.5.0)
 
 - `/` devient une landing server component, zéro JS Leaflet :
   1. nav minimale (logo + CTA « Ouvrir la carte » → `/app`) ;
