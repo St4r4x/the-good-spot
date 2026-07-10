@@ -1,11 +1,12 @@
 "use client";
 
 import { HousingForm } from "@/components/housing-form";
+import { HousingList } from "@/components/housing-list";
 import { Panel } from "@/components/panel";
 import { WorkplaceForm } from "@/components/workplace-form";
 import { ApiError, fetchHousing, fetchIsochrone, type TravelMode } from "@/lib/api";
 import { computeIntersection, computeUnion, type PolygonFeature } from "@/lib/geo";
-import { buildHousingMarker } from "@/lib/housing";
+import { buildHousingMarker, removeHousingAt } from "@/lib/housing";
 import type { HousingMarker, WorkResult } from "@/components/map/isochrone-map";
 import dynamic from "next/dynamic";
 import { useState } from "react";
@@ -27,6 +28,16 @@ export function IsochroneApp() {
   const [housingError, setHousingError] = useState<string | null>(null);
   const [isLoadingWorkplaces, setIsLoadingWorkplaces] = useState(false);
   const [isLoadingHousing, setIsLoadingHousing] = useState(false);
+  const [focus, setFocus] = useState<{ index: number; token: number } | null>(null);
+
+  function handleRemoveHousing(index: number) {
+    setHousingMarkers((prev) => removeHousingAt(prev, index));
+    setFocus(null);
+  }
+
+  function handleFocusHousing(index: number) {
+    setFocus({ index, token: Date.now() });
+  }
 
   async function handleWorkplaceSubmit(
     address1: string,
@@ -104,12 +115,13 @@ export function IsochroneApp() {
           onSubmit={handleHousingSubmit}
           isLoading={isLoadingHousing}
           disabled={!work1 || !work2}
+          error={housingError}
         />
-        {housingError && (
-          <p role="alert" className="px-4 pb-4 text-sm text-destructive">
-            {housingError}
-          </p>
-        )}
+        <HousingList
+          items={housingMarkers}
+          onRemove={handleRemoveHousing}
+          onFocus={handleFocusHousing}
+        />
       </Panel>
     </div>
   );
