@@ -1,8 +1,7 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { HousingForm } from "@/components/housing-form";
+import { Panel } from "@/components/panel";
 import { WorkplaceForm } from "@/components/workplace-form";
 import { ApiError, fetchHousing, fetchIsochrone, type TravelMode } from "@/lib/api";
 import { computeIntersection, computeUnion, type PolygonFeature } from "@/lib/geo";
@@ -84,7 +83,7 @@ export function IsochroneApp() {
   }
 
   return (
-    <div className="relative flex-1">
+    <div className="relative h-full">
       <IsochroneMap
         work1={work1}
         work2={work2}
@@ -92,28 +91,24 @@ export function IsochroneApp() {
         housingMarkers={housingMarkers}
       />
 
-      <div className="absolute inset-x-0 top-0 z-10 flex flex-col gap-2 p-3">
-        <Card className="border-border/60 shadow-md">
-          <WorkplaceForm onSubmit={handleWorkplaceSubmit} isLoading={isLoadingWorkplaces} />
-          <HousingForm
-            onSubmit={handleHousingSubmit}
-            isLoading={isLoadingHousing}
-            disabled={!work1 || !work2}
-          />
-        </Card>
-
-        {resolvedLabel && (
-          <Card className="border-border/60 w-fit bg-card/95 px-3 py-2 text-sm text-muted-foreground shadow-sm">
+      <Panel>
+        <WorkplaceForm onSubmit={handleWorkplaceSubmit} isLoading={isLoadingWorkplaces} />
+        <HousingForm
+          onSubmit={handleHousingSubmit}
+          isLoading={isLoadingHousing}
+          disabled={!work1 || !work2}
+        />
+        {(resolvedLabel || error) && (
+          <div className="px-4 pb-4 text-sm text-muted-foreground">
             {resolvedLabel}
-          </Card>
+            {error && (
+              <p role="alert" className="text-destructive">
+                {error}
+              </p>
+            )}
+          </div>
         )}
-
-        {error && (
-          <Badge variant="destructive" className="w-fit px-3 py-1.5 text-sm shadow-sm">
-            {error}
-          </Badge>
-        )}
-      </div>
+      </Panel>
     </div>
   );
 }
