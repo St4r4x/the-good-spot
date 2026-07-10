@@ -2,6 +2,7 @@
 
 import { HousingForm } from "@/components/housing-form";
 import { HousingList } from "@/components/housing-list";
+import { MapLegend } from "@/components/map/map-legend";
 import { Panel } from "@/components/panel";
 import { WorkplaceForm } from "@/components/workplace-form";
 import { ApiError, fetchHousing, fetchIsochrone, type TravelMode } from "@/lib/api";
@@ -101,7 +102,14 @@ export function IsochroneApp() {
         work2={work2}
         intersection={intersection}
         housingMarkers={housingMarkers}
+        focus={focus}
       />
+
+      {work1 && work2 && (
+        <div className="absolute top-3 right-3 z-10 md:top-auto md:bottom-8">
+          <MapLegend />
+        </div>
+      )}
 
       <Panel>
         <WorkplaceForm

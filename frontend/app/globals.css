@@ -127,3 +127,12 @@
     @apply font-sans;
   }
 }
+
+.leaflet-container {
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  box-shadow: 0 2px 12px oklch(22% 0.01 220 / 0.12);
+}
