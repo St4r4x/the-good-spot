@@ -4,10 +4,12 @@ import { HousingForm } from "@/components/housing-form";
 import { HousingList } from "@/components/housing-list";
 import { MapLegend } from "@/components/map/map-legend";
 import { Panel } from "@/components/panel";
+import { Welcome } from "@/components/welcome";
 import { WorkplaceForm } from "@/components/workplace-form";
 import { ApiError, fetchHousing, fetchIsochrone, type TravelMode } from "@/lib/api";
 import { computeIntersection, computeUnion, type PolygonFeature } from "@/lib/geo";
 import { buildHousingMarker, removeHousingAt } from "@/lib/housing";
+import { WORKPLACES_STORAGE_KEY, parseSavedWorkplaces } from "@/lib/workplaces";
 import type { HousingMarker, WorkResult } from "@/components/map/isochrone-map";
 import dynamic from "next/dynamic";
 import { useState } from "react";
@@ -30,6 +32,11 @@ export function IsochroneApp() {
   const [isLoadingWorkplaces, setIsLoadingWorkplaces] = useState(false);
   const [isLoadingHousing, setIsLoadingHousing] = useState(false);
   const [focus, setFocus] = useState<{ index: number; token: number } | null>(null);
+  const [showWelcome, setShowWelcome] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const saved = parseSavedWorkplaces(localStorage.getItem(WORKPLACES_STORAGE_KEY));
+    return !saved.address1 && !saved.address2;
+  });
 
   function handleRemoveHousing(index: number) {
     setHousingMarkers((prev) => removeHousingAt(prev, index));
@@ -66,6 +73,7 @@ export function IsochroneApp() {
 
       const computed = computeIntersection(polygon1, polygon2);
       setIntersection(computed);
+      setShowWelcome(false);
       if (!computed) {
         setWorkplaceError(`Aucune zone commune atteignable en ${minutes} min depuis les deux lieux.`);
       }
@@ -112,6 +120,7 @@ export function IsochroneApp() {
       )}
 
       <Panel>
+        {showWelcome && <Welcome />}
         <WorkplaceForm
           onSubmit={handleWorkplaceSubmit}
           isLoading={isLoadingWorkplaces}
