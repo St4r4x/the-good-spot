@@ -5,6 +5,17 @@ versionnage [semver](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-10
+
+### Added
+- Page d'accueil marketing sur `/` : hero avec capture réelle de l'app,
+  « Comment ça marche » en 3 étapes, réassurance (vrais temps de trajet,
+  données locales au navigateur, gratuit), CTA vers la carte, metadata
+  SEO/OpenGraph.
+
+### Changed
+- L'app carte est déplacée de `/` vers `/app`.
+
 ## [0.4.0] - 2026-07-10
 
 ### Added

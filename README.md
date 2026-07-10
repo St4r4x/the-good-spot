@@ -39,7 +39,8 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Ouvrir `http://localhost:8080`.
+Ouvrir `http://localhost:8080` — la page d'accueil présente le produit, l'app
+carte est sur `/app`.
 
 ## Structure
 
