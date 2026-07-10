@@ -21,8 +21,10 @@ export function IsochroneApp() {
   const [modes, setModes] = useState<TravelMode[]>(["transit"]);
   const [intersection, setIntersection] = useState<PolygonFeature | null>(null);
   const [housingMarkers, setHousingMarkers] = useState<HousingMarker[]>([]);
-  const [resolvedLabel, setResolvedLabel] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [resolved1, setResolved1] = useState<string | null>(null);
+  const [resolved2, setResolved2] = useState<string | null>(null);
+  const [workplaceError, setWorkplaceError] = useState<string | null>(null);
+  const [housingError, setHousingError] = useState<string | null>(null);
   const [isLoadingWorkplaces, setIsLoadingWorkplaces] = useState(false);
   const [isLoadingHousing, setIsLoadingHousing] = useState(false);
 
@@ -32,7 +34,7 @@ export function IsochroneApp() {
     minutes: number,
     selectedModes: TravelMode[]
   ) {
-    setError(null);
+    setWorkplaceError(null);
     setIsLoadingWorkplaces(true);
     setModes(selectedModes);
     try {
@@ -46,18 +48,17 @@ export function IsochroneApp() {
 
       setWork1({ lat: results1[0].lat, lon: results1[0].lon, polygon: polygon1 });
       setWork2({ lat: results2[0].lat, lon: results2[0].lon, polygon: polygon2 });
-      setResolvedLabel(
-        `Lieu 1 : ${results1[0].resolved_address} — Lieu 2 : ${results2[0].resolved_address}`
-      );
+      setResolved1(results1[0].resolved_address);
+      setResolved2(results2[0].resolved_address);
       setHousingMarkers([]);
 
       const computed = computeIntersection(polygon1, polygon2);
       setIntersection(computed);
       if (!computed) {
-        setError(`Aucune zone commune atteignable en ${minutes} min depuis les deux lieux.`);
+        setWorkplaceError(`Aucune zone commune atteignable en ${minutes} min depuis les deux lieux.`);
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Une erreur est survenue.");
+      setWorkplaceError(err instanceof ApiError ? err.message : "Une erreur est survenue.");
     } finally {
       setIsLoadingWorkplaces(false);
     }
@@ -65,10 +66,10 @@ export function IsochroneApp() {
 
   async function handleHousingSubmit(address: string) {
     if (!work1 || !work2) {
-      setError("Calcule d'abord la zone commune avec les deux lieux de travail.");
+      setHousingError("Calcule d'abord la zone commune avec les deux lieux de travail.");
       return;
     }
-    setError(null);
+    setHousingError(null);
     setIsLoadingHousing(true);
     try {
       const results = await Promise.all(
@@ -76,7 +77,7 @@ export function IsochroneApp() {
       );
       setHousingMarkers((prev) => [...prev, buildHousingMarker(results, intersection)]);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Une erreur est survenue.");
+      setHousingError(err instanceof ApiError ? err.message : "Une erreur est survenue.");
     } finally {
       setIsLoadingHousing(false);
     }
@@ -92,21 +93,22 @@ export function IsochroneApp() {
       />
 
       <Panel>
-        <WorkplaceForm onSubmit={handleWorkplaceSubmit} isLoading={isLoadingWorkplaces} />
+        <WorkplaceForm
+          onSubmit={handleWorkplaceSubmit}
+          isLoading={isLoadingWorkplaces}
+          resolved1={resolved1}
+          resolved2={resolved2}
+          error={workplaceError}
+        />
         <HousingForm
           onSubmit={handleHousingSubmit}
           isLoading={isLoadingHousing}
           disabled={!work1 || !work2}
         />
-        {(resolvedLabel || error) && (
-          <div className="px-4 pb-4 text-sm text-muted-foreground">
-            {resolvedLabel}
-            {error && (
-              <p role="alert" className="text-destructive">
-                {error}
-              </p>
-            )}
-          </div>
+        {housingError && (
+          <p role="alert" className="px-4 pb-4 text-sm text-destructive">
+            {housingError}
+          </p>
         )}
       </Panel>
     </div>
