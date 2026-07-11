@@ -40,8 +40,6 @@ export function IsochroneApp() {
     return !saved.address1 && !saved.address2;
   });
   const [poiGroups, setPoiGroups] = useState<PoiGroup[]>([]);
-  // Unused until Task 6 wires pois into the map component display.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [pois, setPois] = useState<Poi[]>([]);
   const [poiError, setPoiError] = useState<string | null>(null);
 
@@ -142,6 +140,7 @@ export function IsochroneApp() {
         intersection={intersection}
         housingMarkers={housingMarkers}
         focus={focus}
+        pois={pois}
       />
 
       {work1 && work2 && (
