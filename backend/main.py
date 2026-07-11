@@ -11,8 +11,44 @@ GEOAPIFY_API_KEY = os.environ["GEOAPIFY_API_KEY"]
 GEOCODE_URL = "https://api.geoapify.com/v1/geocode/search"
 ISOLINE_URL = "https://api.geoapify.com/v1/isoline"
 ROUTING_URL = "https://api.geoapify.com/v1/routing"
+PLACES_URL = "https://api.geoapify.com/v2/places"
 MAX_MINUTES = 60
 TRAVEL_MODES = {"transit", "walk", "bicycle", "drive"}
+
+POI_GROUPS: dict[str, list[str]] = {
+    "education": [
+        "education.school",
+        "childcare.kindergarten",
+        "education.music_school",
+    ],
+    "sport": [
+        "sport.fitness",
+        "sport.pitch",
+        "sport.sports_centre",
+        "sport.horse_riding",
+        "activity.sport_club",
+    ],
+    "commerce": [
+        "commercial.supermarket",
+        "commercial.convenience",
+        "commercial.food_and_drink",
+        "commercial.marketplace",
+    ],
+    "health": [
+        "healthcare.hospital",
+        "healthcare.clinic_or_praxis",
+        "healthcare.pharmacy",
+    ],
+    "parks": ["leisure.park", "leisure.playground"],
+    "catering": ["catering.restaurant", "catering.cafe", "catering.bar"],
+    "public_transport": ["public_transport"],
+    "culture": [
+        "entertainment.culture",
+        "entertainment.museum",
+        "entertainment.cinema",
+        "tourism.sights",
+    ],
+}
 
 app = FastAPI()
 
@@ -51,6 +87,33 @@ async def travel_time_seconds(
 def validate_mode(mode: str) -> None:
     if mode not in TRAVEL_MODES:
         raise HTTPException(400, f"mode doit être l'un de {sorted(TRAVEL_MODES)}")
+
+
+def validate_groups(groups: list[str]) -> None:
+    unknown = set(groups) - POI_GROUPS.keys()
+    if unknown:
+        raise HTTPException(400, f"groups inconnu(s) : {sorted(unknown)}")
+
+
+def parse_bbox(bbox: str) -> str:
+    parts = bbox.split(",")
+    if len(parts) != 4:
+        raise HTTPException(400, "bbox doit contenir 4 valeurs : lon1,lat1,lon2,lat2")
+    try:
+        [float(p) for p in parts]
+    except ValueError as exc:
+        raise HTTPException(400, "bbox doit contenir des nombres") from exc
+    return bbox
+
+
+def group_for_categories(categories: list[str], groups: list[str]) -> str | None:
+    # Iterate POI_GROUPS' canonical (insertion) order, not the client-supplied
+    # `groups` order, so a category overlapping two groups always resolves the
+    # same way regardless of how the frontend ordered its query param.
+    for group in POI_GROUPS:
+        if group in groups and any(cat in categories for cat in POI_GROUPS[group]):
+            return group
+    return None
 
 
 @app.get("/isochrone")
@@ -108,3 +171,34 @@ async def housing(
             "time_to_work1_minutes": round(time1 / 60),
             "time_to_work2_minutes": round(time2 / 60),
         }
+
+
+@app.get("/pois")
+async def pois(bbox: str, groups: str) -> dict:
+    validated_bbox = parse_bbox(bbox)
+    group_list = groups.split(",")
+    validate_groups(group_list)
+    categories = ",".join(cat for g in group_list for cat in POI_GROUPS[g])
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.get(
+            PLACES_URL,
+            params={
+                "categories": categories,
+                "filter": f"rect:{validated_bbox}",
+                "limit": 500,
+                "apiKey": GEOAPIFY_API_KEY,
+            },
+        )
+        resp.raise_for_status()
+        results = []
+        for feature in resp.json()["features"]:
+            props = feature["properties"]
+            group = group_for_categories(props.get("categories", []), group_list)
+            if group is None:
+                continue
+            lon, lat = feature["geometry"]["coordinates"]
+            results.append(
+                {"lat": lat, "lon": lon, "name": props.get("name"), "group": group}
+            )
+        return {"pois": results}
