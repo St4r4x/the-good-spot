@@ -2,8 +2,11 @@ import asyncio
 import os
 
 import httpx
+import jwt
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 load_dotenv()
 
@@ -14,6 +17,10 @@ ROUTING_URL = "https://api.geoapify.com/v1/routing"
 PLACES_URL = "https://api.geoapify.com/v2/places"
 MAX_MINUTES = 60
 TRAVEL_MODES = {"transit", "walk", "bicycle", "drive"}
+
+SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
+ANONYMOUS_RATE_LIMIT = "30/day"
+AUTHENTICATED_RATE_LIMIT = "200/day"
 
 POI_GROUPS: dict[str, list[str]] = {
     "education": [
@@ -50,7 +57,49 @@ POI_GROUPS: dict[str, list[str]] = {
     ],
 }
 
+
+def get_current_user_id(request: Request) -> str | None:
+    auth_header = request.headers.get("authorization")
+    if (
+        not auth_header
+        or not auth_header.startswith("Bearer ")
+        or not SUPABASE_JWT_SECRET
+    ):
+        return None
+    token = auth_header.removeprefix("Bearer ")
+    try:
+        payload = jwt.decode(
+            token, SUPABASE_JWT_SECRET, algorithms=["HS256"], audience="authenticated"
+        )
+    except jwt.PyJWTError:
+        return None
+    return payload.get("sub")
+
+
+def rate_limit_key(request: Request) -> str:
+    user_id = get_current_user_id(request)
+    if user_id:
+        return user_id
+    return request.client.host if request.client else "unknown"
+
+
+def rate_limit_value(key: str) -> str:
+    # ponytail: `key` parameter used by slowapi to detect request-aware limit provider
+    # The key itself doesn't matter; we determine limit based on whether it's a UUID
+    # (authenticated user_id) or an IP address (anonymous).
+    # This is a workaround for slowapi's API which requires a `key` parameter
+    # to recognize the limit provider as request-aware.
+    return (
+        AUTHENTICATED_RATE_LIMIT
+        if len(key) == 36 and key.count("-") == 4  # UUID format check
+        else ANONYMOUS_RATE_LIMIT
+    )
+
+
+limiter = Limiter(key_func=rate_limit_key)
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 async def geocode(client: httpx.AsyncClient, address: str) -> dict:
@@ -117,7 +166,10 @@ def group_for_categories(categories: list[str], groups: list[str]) -> str | None
 
 
 @app.get("/isochrone")
-async def isochrone(address: str, minutes: int, mode: str = "transit") -> dict:
+@limiter.limit(rate_limit_value)
+async def isochrone(
+    request: Request, address: str, minutes: int, mode: str = "transit"
+) -> dict:
     if minutes <= 0 or minutes > MAX_MINUTES:
         raise HTTPException(400, f"minutes doit être entre 1 et {MAX_MINUTES}")
     validate_mode(mode)
@@ -147,7 +199,9 @@ async def isochrone(address: str, minutes: int, mode: str = "transit") -> dict:
 
 
 @app.get("/housing")
+@limiter.limit(rate_limit_value)
 async def housing(
+    request: Request,
     address: str,
     work1_lat: float,
     work1_lon: float,
@@ -174,7 +228,8 @@ async def housing(
 
 
 @app.get("/pois")
-async def pois(bbox: str, groups: str) -> dict:
+@limiter.limit(rate_limit_value)
+async def pois(request: Request, bbox: str, groups: str) -> dict:
     validated_bbox = parse_bbox(bbox)
     group_list = groups.split(",")
     validate_groups(group_list)
