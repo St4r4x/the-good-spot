@@ -156,11 +156,11 @@
 .marker-cluster-small,
 .marker-cluster-medium,
 .marker-cluster-large {
-  background-color: color-mix(in oklch, var(--primary) 30%, transparent);
+  background-color: color-mix(in oklch, var(--primary) 30%, transparent) !important;
 }
 .marker-cluster-small div,
 .marker-cluster-medium div,
 .marker-cluster-large div {
-  background-color: var(--primary);
-  color: var(--primary-foreground);
+  background-color: var(--primary) !important;
+  color: var(--primary-foreground) !important;
 }
