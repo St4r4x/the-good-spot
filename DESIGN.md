@@ -85,6 +85,11 @@ seed mode ne fabrique pas de composants avant qu'il y ait du code.]
 - **Style:** fond Warm White, bordure Border Mist 1px, coins 8px.
 - **Focus:** bordure Deep Teal + ring léger, jamais de glow décoratif.
 
+### POI Markers
+- **Neutral Style:** fond carte inchangé, bordure légère (Border Mist), icône `muted-foreground` — jamais de couleur fonctionnelle spécifique par groupe.
+- **Clustering:** teal (`var(--primary)`) pour le badge de compteur uniquement, l'icône cluster reste neutre (muted-foreground).
+- **Visual Hierarchy:** distinction entre groupes POI (éducation, sport, santé, etc.) par icône uniquement, pas par couleur — la carte porte ses couleurs fonctionnelles indépendamment de The One Accent Rule.
+
 ## 6. Do's and Don'ts
 
 ### Do:

@@ -66,3 +66,6 @@ mettre à jour si le positionnement ou le style visuel changent.
 - `GET /housing?address=...&work1_lat=...&work1_lon=...&work2_lat=...&work2_lon=...&mode=transit|walk|bicycle|drive`
   → géocode l'adresse candidate, retourne le temps de trajet réel (API
   Routing, même mode) vers chacun des deux points.
+- `GET /pois?bbox=lon1,lat1,lon2,lat2&groups=education,sport,commerce,health,parks,catering,public_transport,culture`
+  → retourne les points d'intérêt Geoapify dans le rectangle englobant,
+  groupés par catégorie (`name` peut être `null`).
