@@ -15,6 +15,23 @@ export type HousingResult = {
   time_to_work2_minutes: number;
 };
 
+export type PoiGroup =
+  | "education"
+  | "sport"
+  | "commerce"
+  | "health"
+  | "parks"
+  | "catering"
+  | "public_transport"
+  | "culture";
+
+export type Poi = {
+  lat: number;
+  lon: number;
+  name: string | null;
+  group: PoiGroup;
+};
+
 export class ApiError extends Error {}
 
 async function parseErrorOrThrow(resp: Response): Promise<never> {
@@ -50,4 +67,18 @@ export async function fetchHousing(
   const resp = await fetch(`/api/housing?${params}`);
   if (!resp.ok) return parseErrorOrThrow(resp);
   return resp.json();
+}
+
+export async function fetchPois(
+  bbox: [number, number, number, number],
+  groups: PoiGroup[]
+): Promise<Poi[]> {
+  const params = new URLSearchParams({
+    bbox: bbox.join(","),
+    groups: groups.join(","),
+  });
+  const resp = await fetch(`/api/pois?${params}`);
+  if (!resp.ok) return parseErrorOrThrow(resp);
+  const data = await resp.json();
+  return data.pois;
 }
