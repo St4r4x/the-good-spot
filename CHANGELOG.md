@@ -5,6 +5,16 @@ versionnage [semver](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-11
+
+### Added
+- Points d'intérêt sur la carte : 8 groupes filtrables (éducation, sport,
+  commerces du quotidien, santé, parcs, restauration, transports en
+  commun, culture), affichés dans toute la zone commune calculée.
+- Nouvel endpoint backend `GET /pois?bbox=...&groups=...`.
+- Clustering des marqueurs POI (`leaflet.markercluster`) pour éviter la
+  surcharge visuelle de la carte à fort zoom arrière.
+
 ## [0.5.1] - 2026-07-11
 
 ### Fixed

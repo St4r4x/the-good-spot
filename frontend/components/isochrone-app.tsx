@@ -4,15 +4,17 @@ import { HousingForm } from "@/components/housing-form";
 import { HousingList } from "@/components/housing-list";
 import { MapLegend } from "@/components/map/map-legend";
 import { Panel } from "@/components/panel";
+import { PoiFilters } from "@/components/poi-filters";
 import { Welcome } from "@/components/welcome";
 import { WorkplaceForm } from "@/components/workplace-form";
-import { ApiError, fetchHousing, fetchIsochrone, type TravelMode } from "@/lib/api";
+import { ApiError, fetchHousing, fetchIsochrone, fetchPois, type Poi, type PoiGroup, type TravelMode } from "@/lib/api";
 import { computeIntersection, computeUnion, type PolygonFeature } from "@/lib/geo";
 import { buildHousingMarker, removeHousingAt } from "@/lib/housing";
+import { poiBbox, poisInZone } from "@/lib/pois";
 import { WORKPLACES_STORAGE_KEY, parseSavedWorkplaces } from "@/lib/workplaces";
 import type { HousingMarker, WorkResult } from "@/components/map/isochrone-map";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const IsochroneMap = dynamic(
   () => import("@/components/map/isochrone-map").then((m) => m.IsochroneMap),
@@ -37,6 +39,9 @@ export function IsochroneApp() {
     const saved = parseSavedWorkplaces(localStorage.getItem(WORKPLACES_STORAGE_KEY));
     return !saved.address1 && !saved.address2;
   });
+  const [poiGroups, setPoiGroups] = useState<PoiGroup[]>([]);
+  const [pois, setPois] = useState<Poi[]>([]);
+  const [poiError, setPoiError] = useState<string | null>(null);
 
   function handleRemoveHousing(index: number) {
     setHousingMarkers((prev) => removeHousingAt(prev, index));
@@ -46,6 +51,30 @@ export function IsochroneApp() {
   function handleFocusHousing(index: number) {
     setFocus({ index, token: Date.now() });
   }
+
+  useEffect(() => {
+    if (poiGroups.length === 0 || !intersection) {
+      // Reset POI list when filters cleared or zone unavailable; eslint-plugin-react-hooks v6 flags all state-setters in effect regardless of context.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPois([]);
+      return;
+    }
+    let cancelled = false;
+    // Clear prior errors before starting new fetch.
+    setPoiError(null);
+    fetchPois(poiBbox(intersection), poiGroups)
+      .then((results) => {
+        if (!cancelled) setPois(poisInZone(results, intersection));
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setPoiError(err instanceof ApiError ? err.message : "Une erreur est survenue.");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [poiGroups, intersection]);
 
   async function handleWorkplaceSubmit(
     address1: string,
@@ -111,6 +140,7 @@ export function IsochroneApp() {
         intersection={intersection}
         housingMarkers={housingMarkers}
         focus={focus}
+        pois={pois}
       />
 
       {work1 && work2 && (
@@ -127,6 +157,12 @@ export function IsochroneApp() {
           resolved1={resolved1}
           resolved2={resolved2}
           error={workplaceError}
+        />
+        <PoiFilters
+          selected={poiGroups}
+          onChange={setPoiGroups}
+          disabled={!intersection}
+          error={poiError}
         />
         <HousingForm
           onSubmit={handleHousingSubmit}

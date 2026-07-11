@@ -22,7 +22,7 @@ export function HousingForm({ onSubmit, isLoading, disabled, error }: HousingFor
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3 border-t border-border px-4 py-4">
-      <h2 className="text-sm font-semibold text-foreground">2 · Tester un logement</h2>
+      <h2 className="text-sm font-semibold text-foreground">3 · Tester un logement</h2>
       {disabled && (
         <p className="text-xs text-muted-foreground">
           Calculez d&apos;abord la zone commune avec vos deux lieux de travail.

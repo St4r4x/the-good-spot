@@ -85,6 +85,11 @@ seed mode ne fabrique pas de composants avant qu'il y ait du code.]
 - **Style:** fond Warm White, bordure Border Mist 1px, coins 8px.
 - **Focus:** bordure Deep Teal + ring léger, jamais de glow décoratif.
 
+### POI Markers
+- **Neutral Style:** fond carte inchangé, bordure légère (Border Mist), icône `muted-foreground` — jamais de couleur fonctionnelle spécifique par groupe.
+- **Clustering:** cercle cluster entièrement teal — anneau externe à 30% d'opacité (`color-mix(in oklch, var(--primary) 30%, transparent)`) + cercle interne `var(--primary)` avec texte `var(--primary-foreground)` ; remplace les couleurs par défaut de leaflet.markercluster.
+- **Visual Hierarchy:** distinction entre groupes POI (éducation, sport, santé, etc.) par icône uniquement, pas par couleur — la carte porte ses couleurs fonctionnelles indépendamment de The One Accent Rule.
+
 ## 6. Do's and Don'ts
 
 ### Do:

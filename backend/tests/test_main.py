@@ -2,7 +2,7 @@ import httpx
 import pytest
 import respx
 
-from main import GEOCODE_URL, ISOLINE_URL, ROUTING_URL, validate_mode
+from main import GEOCODE_URL, ISOLINE_URL, PLACES_URL, ROUTING_URL, validate_mode
 
 GEOCODE_MATCH = {
     "features": [
@@ -113,3 +113,66 @@ def test_housing_happy_path(client) -> None:
 
     routing_request = respx.calls.last.request
     assert routing_request.url.params["mode"] == "bicycle"
+
+
+@respx.mock
+def test_pois_rejects_unknown_group(client) -> None:
+    resp = client.get(
+        "/pois", params={"bbox": "2.3,48.8,2.4,48.9", "groups": "not_a_group"}
+    )
+    assert resp.status_code == 400
+
+
+@respx.mock
+def test_pois_rejects_invalid_bbox(client) -> None:
+    resp = client.get("/pois", params={"bbox": "2.3,48.8,2.4", "groups": "sport"})
+    assert resp.status_code == 400
+
+
+@respx.mock
+def test_pois_happy_path(client) -> None:
+    respx.get(PLACES_URL).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "features": [
+                    {
+                        "properties": {
+                            "name": "École Jules Ferry",
+                            "categories": ["education", "education.school"],
+                        },
+                        "geometry": {"coordinates": [2.35, 48.85]},
+                    },
+                    {
+                        "properties": {"categories": ["sport", "sport.pitch"]},
+                        "geometry": {"coordinates": [2.36, 48.86]},
+                    },
+                ]
+            },
+        )
+    )
+
+    resp = client.get(
+        "/pois", params={"bbox": "2.3,48.8,2.4,48.9", "groups": "education,sport"}
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body["pois"]) == 2
+    assert body["pois"][0] == {
+        "lat": 48.85,
+        "lon": 2.35,
+        "name": "École Jules Ferry",
+        "group": "education",
+    }
+    assert body["pois"][1] == {
+        "lat": 48.86,
+        "lon": 2.36,
+        "name": None,
+        "group": "sport",
+    }
+
+    request = respx.calls.last.request
+    assert "education.school" in request.url.params["categories"]
+    assert "sport.pitch" in request.url.params["categories"]
+    assert request.url.params["filter"] == "rect:2.3,48.8,2.4,48.9"
+    assert request.url.params["limit"] == "500"

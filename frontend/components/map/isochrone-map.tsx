@@ -2,9 +2,15 @@
 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
+import "leaflet.markercluster";
 import { useEffect, useRef } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import type { PolygonFeature } from "@/lib/geo";
 import { MAP_COLORS } from "@/lib/map-colors";
+import type { Poi, PoiGroup } from "@/lib/api";
+import { POI_GROUP_ICONS, POI_GROUP_LABELS, poiLabel } from "@/lib/pois";
 export type { HousingMarker } from "@/lib/housing";
 import type { HousingMarker } from "@/lib/housing";
 
@@ -20,6 +26,7 @@ type IsochroneMapProps = {
   intersection: PolygonFeature | null;
   housingMarkers: HousingMarker[];
   focus: { index: number; token: number } | null;
+  pois: Poi[];
 };
 
 const DEFAULT_CENTER: [number, number] = [48.8566, 2.3522];
@@ -36,17 +43,28 @@ function escapeHtml(s: string): string {
   ));
 }
 
+function poiDivIcon(group: PoiGroup): L.DivIcon {
+  const Icon = POI_GROUP_ICONS[group];
+  return L.divIcon({
+    className: "poi-marker",
+    html: renderToStaticMarkup(<Icon size={14} />),
+    iconSize: [26, 26],
+  });
+}
+
 export function IsochroneMap({
   work1,
   work2,
   intersection,
   housingMarkers,
   focus,
+  pois,
 }: IsochroneMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layersRef = useRef<L.Layer[]>([]);
   const housingLayersRef = useRef<L.CircleMarker[]>([]);
+  const poiClusterRef = useRef<L.MarkerClusterGroup | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -123,6 +141,28 @@ export function IsochroneMap({
     map.flyTo(layer.getLatLng(), Math.max(map.getZoom(), 13));
     layer.openPopup();
   }, [focus]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (poiClusterRef.current) {
+      map.removeLayer(poiClusterRef.current);
+      poiClusterRef.current = null;
+    }
+    if (pois.length === 0) return;
+
+    const cluster = L.markerClusterGroup();
+    pois.forEach((poi) => {
+      L.marker([poi.lat, poi.lon], { icon: poiDivIcon(poi.group) })
+        .bindPopup(
+          `<strong>${escapeHtml(poiLabel(poi))}</strong><br>${escapeHtml(POI_GROUP_LABELS[poi.group])}`
+        )
+        .addTo(cluster);
+    });
+    cluster.addTo(map);
+    poiClusterRef.current = cluster;
+  }, [pois]);
 
   return <div ref={containerRef} className="absolute inset-0 isolate" />;
 }
