@@ -57,8 +57,8 @@ export default function LandingPage() {
           <Link href="/app" className={cn(buttonVariants({ size: "lg" }), "mt-8")}>
             Ouvrir la carte
           </Link>
-          <div className="mt-12 overflow-hidden rounded-xl border border-border shadow-floating">
-            {/* Pre-optimized WebP served as-is — no runtime image optimizer needed. */}
+          <div className="mt-12 overflow-hidden rounded-xl border border-border">
+            {/* Pre-optimized WebP served as-is; no-img-element rule doesn't apply here. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/app-preview.webp"
