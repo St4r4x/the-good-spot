@@ -87,7 +87,7 @@ seed mode ne fabrique pas de composants avant qu'il y ait du code.]
 
 ### POI Markers
 - **Neutral Style:** fond carte inchangé, bordure légère (Border Mist), icône `muted-foreground` — jamais de couleur fonctionnelle spécifique par groupe.
-- **Clustering:** teal (`var(--primary)`) pour le badge de compteur uniquement, l'icône cluster reste neutre (muted-foreground).
+- **Clustering:** cercle cluster entièrement teal — anneau externe à 30% d'opacité (`color-mix(in oklch, var(--primary) 30%, transparent)`) + cercle interne `var(--primary)` avec texte `var(--primary-foreground)` ; remplace les couleurs par défaut de leaflet.markercluster.
 - **Visual Hierarchy:** distinction entre groupes POI (éducation, sport, santé, etc.) par icône uniquement, pas par couleur — la carte porte ses couleurs fonctionnelles indépendamment de The One Accent Rule.
 
 ## 6. Do's and Don'ts
