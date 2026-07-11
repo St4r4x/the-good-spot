@@ -7,7 +7,7 @@ import { Panel } from "@/components/panel";
 import { PoiFilters } from "@/components/poi-filters";
 import { Welcome } from "@/components/welcome";
 import { WorkplaceForm } from "@/components/workplace-form";
-import { ApiError, fetchHousing, fetchIsochrone, fetchPois, type TravelMode, type Poi, type PoiGroup } from "@/lib/api";
+import { ApiError, fetchHousing, fetchIsochrone, fetchPois, type Poi, type PoiGroup, type TravelMode } from "@/lib/api";
 import { computeIntersection, computeUnion, type PolygonFeature } from "@/lib/geo";
 import { buildHousingMarker, removeHousingAt } from "@/lib/housing";
 import { poiBbox, poisInZone } from "@/lib/pois";
@@ -40,6 +40,7 @@ export function IsochroneApp() {
     return !saved.address1 && !saved.address2;
   });
   const [poiGroups, setPoiGroups] = useState<PoiGroup[]>([]);
+  // Unused until Task 6 wires pois into the map component display.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [pois, setPois] = useState<Poi[]>([]);
   const [poiError, setPoiError] = useState<string | null>(null);
@@ -55,10 +56,13 @@ export function IsochroneApp() {
 
   useEffect(() => {
     if (poiGroups.length === 0 || !intersection) {
+      // Reset POI list when filters cleared or zone unavailable; eslint-plugin-react-hooks v6 flags all state-setters in effect regardless of context.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPois([]);
       return;
     }
     let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // Clear prior errors before starting new fetch.
     setPoiError(null);
     fetchPois(poiBbox(intersection), poiGroups)
       .then((results) => {
