@@ -79,21 +79,19 @@ def get_current_user_id(request: Request) -> str | None:
 def rate_limit_key(request: Request) -> str:
     user_id = get_current_user_id(request)
     if user_id:
-        return user_id
-    return request.client.host if request.client else "unknown"
+        return f"user:{user_id}"
+    host = request.client.host if request.client else "unknown"
+    return f"ip:{host}"
 
 
+# slowapi calls this with rate_limit_key's return value (it inspects this
+# function's sole parameter name — must be literally "key" — see
+# LimitGroup.__iter__ in slowapi/wrappers.py). The "user:"/"ip:" prefix
+# from rate_limit_key disambiguates identity type without guessing from
+# the value's shape (a raw UUID string could otherwise be confused with
+# some other identifier format in the future).
 def rate_limit_value(key: str) -> str:
-    # ponytail: `key` parameter used by slowapi to detect request-aware limit provider
-    # The key itself doesn't matter; we determine limit based on whether it's a UUID
-    # (authenticated user_id) or an IP address (anonymous).
-    # This is a workaround for slowapi's API which requires a `key` parameter
-    # to recognize the limit provider as request-aware.
-    return (
-        AUTHENTICATED_RATE_LIMIT
-        if len(key) == 36 and key.count("-") == 4  # UUID format check
-        else ANONYMOUS_RATE_LIMIT
-    )
+    return AUTHENTICATED_RATE_LIMIT if key.startswith("user:") else ANONYMOUS_RATE_LIMIT
 
 
 limiter = Limiter(key_func=rate_limit_key)
