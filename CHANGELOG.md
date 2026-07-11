@@ -5,6 +5,14 @@ versionnage [semver](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-07-11
+
+### Fixed
+- La description du produit ne laisse plus croire à un temps de transport en
+  commun pur : le mode `transit` de Geoapify renvoie en réalité un temps
+  porte-à-porte (trajet + marche vers/depuis les arrêts). README et métadonnées
+  reformulés en conséquence.
+
 ## [0.5.0] - 2026-07-10
 
 ### Added

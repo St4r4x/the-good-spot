@@ -1,8 +1,8 @@
 # The Good Spot
 
 Trouve une zone de logement équitable pour un couple avec deux lieux de travail
-différents, en se basant sur de vrais temps de trajet en transport en commun (pas
-une estimation à vol d'oiseau).
+différents, en se basant sur de vrais temps de trajet porte-à-porte (transport en
+commun, marche, vélo ou voiture — pas une estimation à vol d'oiseau).
 
 1. Renseigne les deux adresses de travail + un temps de trajet max (jusqu'à 60 min)
    + un ou plusieurs moyens de transport (transports en commun, marche, vélo,
