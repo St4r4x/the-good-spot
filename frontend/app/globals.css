@@ -138,3 +138,29 @@
   border-radius: 8px;
   box-shadow: var(--shadow-floating);
 }
+
+.poi-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--muted-foreground);
+}
+
+/* Override leaflet.markercluster's default green/yellow/orange gradient —
+   DESIGN.md's One Accent Rule allows only Deep Teal in the chrome. */
+.marker-cluster-small,
+.marker-cluster-medium,
+.marker-cluster-large {
+  background-color: color-mix(in oklch, var(--primary) 30%, transparent);
+}
+.marker-cluster-small div,
+.marker-cluster-medium div,
+.marker-cluster-large div {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
