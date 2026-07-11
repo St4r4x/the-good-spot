@@ -40,7 +40,7 @@ Supabase personnels d'Arnaud) :
 
 Auth + Postgres managés, Row Level Security pour l'isolation par
 utilisateur. Le frontend Next.js parle **directement** à Supabase (client
-JS `@supabase/ssr`) pour l'auth et les données utilisateur — Supabase
+JS `@supabase/supabase-js`) pour l'auth et les données utilisateur — Supabase
 expose déjà une API REST protégée par RLS, pas besoin de recoder du CRUD
 dans FastAPI. FastAPI garde son rôle actuel (appels Geoapify) et gagne
 uniquement la vérification du JWT Supabase, pour le rate limiting.
@@ -104,7 +104,7 @@ RLS : `select`/`insert`/`delete` autorisés seulement si `user_id = auth.uid()`.
 
 ## Flux frontend
 
-- **Chargement** : si une session Supabase existe (`@supabase/ssr`), lire
+- **Chargement** : si une session Supabase existe, lire
   `workplaces` (pré-remplir le formulaire, écrasant la valeur
   `localStorage` locale) et `housing_searches` (hydrater la liste des
   logements testés, vide sinon comme aujourd'hui).
@@ -149,7 +149,7 @@ RLS : `select`/`insert`/`delete` autorisés seulement si `user_id = auth.uid()`.
 
 ## Frontend : nouvelles dépendances
 
-- `@supabase/supabase-js` et `@supabase/ssr` (client officiel Next.js).
+- `@supabase/supabase-js` — pas `@supabase/ssr`: aucune donnée d'auth n'est lue côté serveur (tout est en client component, comme le reste de l'app), le client navigateur seul suffit.
 
 ## Tests
 
