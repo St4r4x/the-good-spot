@@ -2,6 +2,7 @@ import type { HousingResult } from "./api";
 import { isPointInPolygon, type PolygonFeature } from "./geo";
 
 export type HousingMarker = {
+  id?: string;
   lat: number;
   lon: number;
   inZone: boolean;
