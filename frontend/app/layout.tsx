@@ -10,7 +10,7 @@ const figtree = Figtree({
 export const metadata: Metadata = {
   title: "The Good Spot",
   description:
-    "Trouvez où vivre à mi-chemin, en vrais temps de trajet transport en commun.",
+    "Trouvez où vivre à mi-chemin, en vrais temps de trajet porte-à-porte.",
 };
 
 export default function RootLayout({
