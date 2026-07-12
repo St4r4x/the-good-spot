@@ -2,6 +2,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { JourneyIllustration } from "@/components/illustrations/journey";
 import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -19,7 +20,10 @@ export default function LandingPage() {
   return (
     <div className="min-h-dvh">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
-        <span className="text-base font-semibold text-foreground">The Good Spot</span>
+        <span className="flex items-center gap-2 text-base font-semibold text-foreground">
+          <Image src="/logo-mark.png" alt="" width={213} height={60} className="h-7 w-auto" />
+          The Good Spot
+        </span>
         <Link href="/app" className={cn(buttonVariants())}>
           Ouvrir la carte
         </Link>

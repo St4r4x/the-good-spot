@@ -18,6 +18,8 @@ versionnage [semver](https://semver.org/lang/fr/).
   `workplaces.default_poi_groups`.
 - Toggle afficher/masquer le mot de passe et `autoComplete` corrects sur
   `/login`.
+- Logo "The Good Spot" (marque pins + maison + itinéraire) dans le header
+  de la landing, `AuthLayout`, et en favicon.
 
 ### Changed
 - Refonte visuelle de la landing, `/login` et `/reset-password` sur un

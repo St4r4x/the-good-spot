@@ -1,4 +1,5 @@
 import type { IllustrationProps } from "@/components/illustrations/types";
+import Image from "next/image";
 import Link from "next/link";
 import type { ComponentType } from "react";
 
@@ -16,7 +17,8 @@ export function AuthLayout({ illustration: Illustration, caption, children }: Au
         <p className="max-w-xs text-center text-sm text-muted-foreground">{caption}</p>
       </div>
       <div className="flex flex-col px-6 py-8 md:order-1 md:justify-center md:px-16">
-        <Link href="/" className="text-base font-semibold text-foreground">
+        <Link href="/" className="flex items-center gap-2 text-base font-semibold text-foreground">
+          <Image src="/logo-mark.png" alt="" width={213} height={60} className="h-7 w-auto" />
           The Good Spot
         </Link>
         <div className="mt-8">{children}</div>
