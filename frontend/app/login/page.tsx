@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 type Mode = "signin" | "signup" | "forgot";
 
 const CAPTIONS: Record<Mode, string> = {
-  signin: "Retrouvez vos lieux de travail et vos recherches, où que vous soyez.",
+  signin: "Reprenez votre recherche : la zone qui convient à vos deux trajets vous attend.",
   signup: "Un compte gratuit pour garder vos lieux de travail synchronisés partout.",
   forgot: "Ça arrive à tout le monde — on vous envoie un nouveau lien en un instant.",
 };
