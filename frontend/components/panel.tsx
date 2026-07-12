@@ -6,7 +6,7 @@ import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 type PanelProps = {
-  accountEmail: string | null;
+  accountEmail: string;
   children: React.ReactNode;
 };
 
