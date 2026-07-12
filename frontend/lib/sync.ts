@@ -1,5 +1,12 @@
 import type { HousingMarker } from "./housing";
-import type { SavedWorkplaces } from "./workplaces";
+import type { TravelMode } from "./api";
+
+export type SavedWorkplaces = {
+  address1: string;
+  address2: string;
+  minutes: string;
+  modes: TravelMode[];
+};
 
 export type WorkplacesRow = {
   user_id: string;

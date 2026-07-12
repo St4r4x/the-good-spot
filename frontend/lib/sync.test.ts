@@ -8,7 +8,7 @@ import {
   type WorkplacesRow,
 } from "./sync";
 import type { HousingMarker } from "./housing";
-import type { SavedWorkplaces } from "./workplaces";
+import type { SavedWorkplaces } from "./sync";
 
 describe("workplacesRowToSaved", () => {
   it("maps a Postgres row to the app's SavedWorkplaces shape", () => {

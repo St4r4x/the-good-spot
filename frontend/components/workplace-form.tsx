@@ -4,12 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { TravelMode } from "@/lib/api";
+import type { SavedWorkplaces } from "@/lib/sync";
 import { cn } from "@/lib/utils";
-import {
-  WORKPLACES_STORAGE_KEY,
-  parseSavedWorkplaces,
-  serializeWorkplaces,
-} from "@/lib/workplaces";
 import { Bike, Bus, Car, Check, Footprints } from "lucide-react";
 import { useState } from "react";
 
@@ -20,12 +16,20 @@ const TRAVEL_MODES: { value: TravelMode; label: string; Icon: typeof Bus }[] = [
   { value: "drive", label: "Voiture", Icon: Car },
 ];
 
+const DEFAULT_INITIAL_WORKPLACES: SavedWorkplaces = {
+  address1: "",
+  address2: "",
+  minutes: "30",
+  modes: ["transit"],
+};
+
 type WorkplaceFormProps = {
   onSubmit: (address1: string, address2: string, minutes: number, modes: TravelMode[]) => void;
   isLoading: boolean;
   resolved1: string | null;
   resolved2: string | null;
   error: string | null;
+  initialWorkplaces?: SavedWorkplaces;
 };
 
 export function WorkplaceForm({
@@ -34,16 +38,12 @@ export function WorkplaceForm({
   resolved1,
   resolved2,
   error,
+  initialWorkplaces = DEFAULT_INITIAL_WORKPLACES,
 }: WorkplaceFormProps) {
-  const [saved] = useState(() =>
-    parseSavedWorkplaces(
-      typeof window === "undefined" ? null : localStorage.getItem(WORKPLACES_STORAGE_KEY)
-    )
-  );
-  const [address1, setAddress1] = useState(saved.address1);
-  const [address2, setAddress2] = useState(saved.address2);
-  const [minutes, setMinutes] = useState(saved.minutes);
-  const [modes, setModes] = useState<TravelMode[]>(saved.modes);
+  const [address1, setAddress1] = useState(initialWorkplaces.address1);
+  const [address2, setAddress2] = useState(initialWorkplaces.address2);
+  const [minutes, setMinutes] = useState(initialWorkplaces.minutes);
+  const [modes, setModes] = useState<TravelMode[]>(initialWorkplaces.modes);
 
   function toggleMode(value: TravelMode) {
     setModes((prev) =>
@@ -54,10 +54,6 @@ export function WorkplaceForm({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (modes.length === 0) return;
-    localStorage.setItem(
-      WORKPLACES_STORAGE_KEY,
-      serializeWorkplaces({ address1, address2, minutes, modes })
-    );
     onSubmit(address1, address2, Number(minutes), modes);
   }
 
