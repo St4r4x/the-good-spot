@@ -1,4 +1,3 @@
-import { LandingAccountMenu } from "@/components/landing-account-menu";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Clock, Home, MapPin } from "lucide-react";
@@ -40,12 +39,9 @@ export default function LandingPage() {
     <div className="min-h-dvh">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
         <span className="text-base font-semibold text-foreground">The Good Spot</span>
-        <div className="flex items-center gap-3">
-          <LandingAccountMenu />
-          <Link href="/app" className={cn(buttonVariants())}>
-            Ouvrir la carte
-          </Link>
-        </div>
+        <Link href="/app" className={cn(buttonVariants())}>
+          Ouvrir la carte
+        </Link>
       </header>
 
       <main className="mx-auto max-w-5xl px-6">
@@ -104,15 +100,14 @@ export default function LandingPage() {
             </li>
             <li>
               <strong className="block font-medium text-foreground">
-                Vos données restent chez vous
+                Synchronisé entre appareils
               </strong>
-              Les adresses sont mémorisées dans votre navigateur uniquement, aucun
-              compte requis.
+              Un compte gratuit garde vos lieux de travail et l&apos;historique de vos
+              logements testés, partout où vous vous connectez.
             </li>
             <li>
               <strong className="block font-medium text-foreground">Gratuit</strong>
-              Pensé pour une recherche de logement à deux, sans inscription ni
-              paiement.
+              Pensé pour une recherche de logement à deux, sans coût caché.
             </li>
           </ul>
         </section>
