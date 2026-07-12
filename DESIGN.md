@@ -90,6 +90,14 @@ seed mode ne fabrique pas de composants avant qu'il y ait du code.]
 - **Clustering:** cercle cluster entièrement teal — anneau externe à 30% d'opacité (`color-mix(in oklch, var(--primary) 30%, transparent)`) + cercle interne `var(--primary)` avec texte `var(--primary-foreground)` ; remplace les couleurs par défaut de leaflet.markercluster.
 - **Visual Hierarchy:** distinction entre groupes POI (éducation, sport, santé, etc.) par icône uniquement, pas par couleur — la carte porte ses couleurs fonctionnelles indépendamment de The One Accent Rule.
 
+### Account Menu
+- **Déconnecté** : bouton discret « Se connecter » (icône + texte,
+  `muted-foreground`), ouvre un popover avec formulaire email/mot de passe
+  et bouton Google.
+- **Connecté** : email affiché (masqué sur mobile), icône de déconnexion,
+  même style discret — pas de nouvelle couleur fonctionnelle, cohérent
+  avec la One Accent Rule.
+
 ## 6. Do's and Don'ts
 
 ### Do:
