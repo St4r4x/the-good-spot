@@ -90,6 +90,18 @@ seed mode ne fabrique pas de composants avant qu'il y ait du code.]
 - **Clustering:** cercle cluster entièrement teal — anneau externe à 30% d'opacité (`color-mix(in oklch, var(--primary) 30%, transparent)`) + cercle interne `var(--primary)` avec texte `var(--primary-foreground)` ; remplace les couleurs par défaut de leaflet.markercluster.
 - **Visual Hierarchy:** distinction entre groupes POI (éducation, sport, santé, etc.) par icône uniquement, pas par couleur — la carte porte ses couleurs fonctionnelles indépendamment de The One Accent Rule.
 
+### Illustrations
+- **Style:** scènes SVG line-art mono-couleur, dessinées à la main comme
+  composants React (`frontend/components/illustrations/`) — jamais de
+  librairie d'illustrations externe, jamais d'image générée.
+- **Couleur:** `stroke="currentColor"`, hérite toujours de `--primary` via
+  une classe `text-primary` sur le conteneur — jamais de dégradé ni de
+  deuxième couleur, cohérent avec The One Accent Rule.
+- **Fil visuel:** trois scènes réutilisées à travers tout le funnel public
+  pour rester identifiables — `JourneyIllustration` (landing, connexion),
+  `KeyIllustration` (mot de passe oublié / réinitialisation),
+  `CompassIllustration` (onboarding).
+
 ### Account Menu
 - **Connecté uniquement** : `/app` n'est jamais accessible sans compte, donc
   `AccountMenu` n'affiche que l'email (masqué sur mobile) et une icône de

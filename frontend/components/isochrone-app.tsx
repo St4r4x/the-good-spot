@@ -5,17 +5,18 @@ import { HousingList } from "@/components/housing-list";
 import { MapLegend } from "@/components/map/map-legend";
 import { Panel } from "@/components/panel";
 import { PoiFilters } from "@/components/poi-filters";
-import { Welcome } from "@/components/welcome";
 import { WorkplaceForm } from "@/components/workplace-form";
 import { ApiError, fetchHousing, fetchIsochrone, fetchPois, type Poi, type PoiGroup, type TravelMode } from "@/lib/api";
 import { computeIntersection, computeUnion, type PolygonFeature } from "@/lib/geo";
 import { buildHousingMarker, removeHousingAt } from "@/lib/housing";
 import { poiBbox, poisInZone } from "@/lib/pois";
+import { isOnboardingComplete } from "@/lib/profile";
 import { supabase } from "@/lib/supabase/client";
 import {
   housingSearchRowToMarker,
   markerToHousingSearchInsert,
   savedToWorkplacesUpsert,
+  workplacesRowToDefaultPoiGroups,
   workplacesRowToSaved,
   type HousingSearchRow,
   type SavedWorkplaces,
@@ -44,7 +45,6 @@ export function IsochroneApp() {
   const [isLoadingWorkplaces, setIsLoadingWorkplaces] = useState(false);
   const [isLoadingHousing, setIsLoadingHousing] = useState(false);
   const [focus, setFocus] = useState<{ index: number; token: number } | null>(null);
-  const [showWelcome, setShowWelcome] = useState(false);
   const [poiGroups, setPoiGroups] = useState<PoiGroup[]>([]);
   const [pois, setPois] = useState<Poi[]>([]);
   const [poiError, setPoiError] = useState<string | null>(null);
@@ -74,24 +74,29 @@ export function IsochroneApp() {
     }
     let cancelled = false;
 
-    async function hydrate(userId: string) {
-      const [{ data: workplacesRow }, { data: housingRows }] = await Promise.all([
+    async function hydrate(userId: string): Promise<boolean> {
+      const [{ data: profileRow }, { data: workplacesRow }] = await Promise.all([
+        supabase!.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase!.from("workplaces").select("*").eq("user_id", userId).maybeSingle(),
-        supabase!
-          .from("housing_searches")
-          .select("*")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: true }),
       ]);
-      if (cancelled) return;
-      if (workplacesRow) {
-        setInitialWorkplaces(workplacesRowToSaved(workplacesRow));
-      } else {
-        setShowWelcome(true);
+      if (cancelled) return false;
+      if (!isOnboardingComplete(profileRow, workplacesRow)) {
+        router.replace("/onboarding");
+        return false;
       }
+      setInitialWorkplaces(workplacesRowToSaved(workplacesRow));
+      setPoiGroups(workplacesRowToDefaultPoiGroups(workplacesRow));
+
+      const { data: housingRows } = await supabase!
+        .from("housing_searches")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true });
+      if (cancelled) return false;
       if (housingRows) {
         setHousingMarkers((housingRows as HousingSearchRow[]).map(housingSearchRowToMarker));
       }
+      return true;
     }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -101,8 +106,8 @@ export function IsochroneApp() {
         return;
       }
       setUser({ id: session.user.id, email: session.user.email });
-      hydrate(session.user.id).finally(() => {
-        if (!cancelled) setAuthReady(true);
+      hydrate(session.user.id).then((ready) => {
+        if (!cancelled && ready) setAuthReady(true);
       });
     });
 
@@ -176,7 +181,6 @@ export function IsochroneApp() {
 
       const computed = computeIntersection(polygon1, polygon2);
       setIntersection(computed);
-      setShowWelcome(false);
       if (!computed) {
         setWorkplaceError(`Aucune zone commune atteignable en ${minutes} min depuis les deux lieux.`);
       }
@@ -234,7 +238,6 @@ export function IsochroneApp() {
 
       {authReady && user ? (
         <Panel accountEmail={user.email}>
-          {showWelcome && <Welcome />}
           <WorkplaceForm
             onSubmit={handleWorkplaceSubmit}
             isLoading={isLoadingWorkplaces}

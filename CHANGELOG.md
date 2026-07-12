@@ -5,6 +5,33 @@ versionnage [semver](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-12
+
+### Added
+- Onboarding en 3 étapes (`/onboarding`) après inscription : prénom/nom,
+  lieux de travail, centres d'intérêt (skippable) — remplace l'accueil
+  silencieux de `/app`. `/app` redirige désormais vers `/onboarding` tant
+  que le profil (`profiles` + `workplaces`) n'est pas complet ; à
+  l'ouverture, `WorkplaceForm` et `PoiFilters` sont pré-remplis avec les
+  données déjà enregistrées.
+- Nouvelle table Supabase `profiles` (prénom, nom) et nouvelle colonne
+  `workplaces.default_poi_groups`.
+- Toggle afficher/masquer le mot de passe et `autoComplete` corrects sur
+  `/login`.
+
+### Changed
+- Refonte visuelle de la landing, `/login` et `/reset-password` sur un
+  ton plus chaleureux (copy réécrite, illustrations SVG line-art
+  `JourneyIllustration`/`KeyIllustration`/`CompassIllustration`, nouveau
+  layout partagé `AuthLayout`). La landing remplace ses deux grilles de
+  3 cartes répétées par un récit en deux colonnes, conformément à
+  `DESIGN.md`.
+
+### Removed
+- Composant `Welcome` (panneau vide de premier accès) et
+  `public/app-preview.webp`, remplacés par l'onboarding et les nouvelles
+  illustrations.
+
 ## [1.0.0] - 2026-07-12
 
 ### Changed
