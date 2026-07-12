@@ -5,6 +5,19 @@ versionnage [semver](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-07-12
+
+### Changed
+- Un compte (email/mot de passe ou Google) est désormais **obligatoire**
+  pour utiliser l'app — l'usage anonyme disparaît (breaking change).
+- `GET /isochrone` renommé en `GET /zone` (même comportement).
+- Les endpoints `/zone`, `/housing`, `/pois` exigent un JWT Supabase valide
+  (401 sinon) ; rate limiting simplifié à un seul palier (200 req/jour par
+  compte).
+
+### Added
+- Récupération de mot de passe oublié (`/login` → email → `/reset-password`).
+
 ## [0.7.0] - 2026-07-11
 
 ### Added

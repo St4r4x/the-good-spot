@@ -15,9 +15,9 @@ commun, marche, vélo ou voiture — pas une estimation à vol d'oiseau).
    elle tombe dans la zone, et calcule le meilleur temps de trajet réel (parmi les
    moyens de transport choisis) vers chacun des deux lieux de travail.
 
-Les deux lieux de travail, la durée et les moyens de transport choisis sont
-mémorisés dans le navigateur (`localStorage`) pour ne pas avoir à les retaper à
-chaque visite.
+Un compte (email/mot de passe ou Google) est nécessaire pour utiliser l'app —
+les lieux de travail et l'historique des logements testés sont synchronisés
+entre appareils via Supabase.
 
 ## Stack
 
@@ -40,11 +40,11 @@ docker compose up --build
 ```
 
 Ouvrir `http://localhost:8080` — la page d'accueil présente le produit, l'app
-carte est sur `/app`.
+carte est sur `/app` (redirige vers `/login` si aucun compte n'est connecté).
 
-Pour activer les comptes utilisateurs (optionnel — l'app fonctionne sans) :
-renseigner `SUPABASE_JWT_SECRET` dans `.env` (Project Settings → Data API
-→ JWT Settings du projet Supabase), et créer `frontend/.env.local` avec :
+Un compte Supabase est nécessaire pour utiliser l'app : renseigner
+`SUPABASE_JWT_SECRET` dans `.env` (Project Settings → Data API → JWT Settings
+du projet Supabase), et créer `frontend/.env.local` avec :
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://wgfcywjykimvxkwpgdob.supabase.co
@@ -73,7 +73,7 @@ mettre à jour si le positionnement ou le style visuel changent.
 
 ## API backend
 
-- `GET /isochrone?address=...&minutes=1-60&mode=transit|walk|bicycle|drive` →
+- `GET /zone?address=...&minutes=1-60&mode=transit|walk|bicycle|drive` →
   géocode l'adresse, retourne l'isochrone du mode choisi en GeoJSON (`mode`
   optionnel, défaut `transit`).
 - `GET /housing?address=...&work1_lat=...&work1_lon=...&work2_lat=...&work2_lon=...&mode=transit|walk|bicycle|drive`
@@ -82,6 +82,6 @@ mettre à jour si le positionnement ou le style visuel changent.
 - `GET /pois?bbox=lon1,lat1,lon2,lat2&groups=education,sport,commerce,health,parks,catering,public_transport,culture`
   → retourne les points d'intérêt Geoapify dans le rectangle englobant,
   groupés par catégorie (`name` peut être `null`).
-- `/isochrone`, `/housing`, `/pois` sont limités en débit (30 req/jour par
-  IP anonyme, 200 req/jour par compte connecté via un JWT Supabase en
-  en-tête `Authorization: Bearer <token>`).
+- `/zone`, `/housing`, `/pois` exigent un JWT Supabase valide en en-tête
+  `Authorization: Bearer <token>` (401 sinon), et sont limités à 200 req/jour
+  par compte, cumulés sur les trois endpoints.

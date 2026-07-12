@@ -91,12 +91,14 @@ seed mode ne fabrique pas de composants avant qu'il y ait du code.]
 - **Visual Hierarchy:** distinction entre groupes POI (éducation, sport, santé, etc.) par icône uniquement, pas par couleur — la carte porte ses couleurs fonctionnelles indépendamment de The One Accent Rule.
 
 ### Account Menu
-- **Déconnecté** : bouton discret « Se connecter » (icône + texte,
-  `muted-foreground`), ouvre un popover avec formulaire email/mot de passe
-  et bouton Google.
-- **Connecté** : email affiché (masqué sur mobile), icône de déconnexion,
-  même style discret — pas de nouvelle couleur fonctionnelle, cohérent
-  avec la One Accent Rule.
+- **Connecté uniquement** : `/app` n'est jamais accessible sans compte, donc
+  `AccountMenu` n'affiche que l'email (masqué sur mobile) et une icône de
+  déconnexion, style discret cohérent avec la One Accent Rule.
+- **Page `/login`** : formulaire email/mot de passe + bouton Google en page
+  pleine largeur (plus de popover), lien « Mot de passe oublié ? » sous le
+  formulaire de connexion.
+- **Page `/reset-password`** : même style de formulaire centré, un seul champ
+  mot de passe + confirmation.
 
 ## 6. Do's and Don'ts
 
