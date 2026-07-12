@@ -17,29 +17,37 @@ export function AccountMenu({ email }: AccountMenuProps) {
   const [formEmail, setFormEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [confirmationSent, setConfirmationSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  if (!supabase) return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setConfirmationSent(false);
     setIsLoading(true);
-    const { error } =
-      mode === "signin"
-        ? await supabase.auth.signInWithPassword({ email: formEmail, password })
-        : await supabase.auth.signUp({ email: formEmail, password });
+    if (mode === "signin") {
+      const { error } = await supabase!.auth.signInWithPassword({ email: formEmail, password });
+      setIsLoading(false);
+      if (error) setError(error.message);
+      return;
+    }
+    const { data, error } = await supabase!.auth.signUp({ email: formEmail, password });
     setIsLoading(false);
     if (error) setError(error.message);
+    // No session yet means Supabase requires email confirmation before login.
+    else if (!data.session) setConfirmationSent(true);
   }
 
   async function handleGoogle() {
-    await supabase.auth.signInWithOAuth({ provider: "google" });
+    await supabase!.auth.signInWithOAuth({ provider: "google" });
   }
 
   if (email) {
     return (
       <button
         type="button"
-        onClick={() => supabase.auth.signOut()}
+        onClick={() => supabase!.auth.signOut()}
         className="flex min-h-11 cursor-pointer items-center gap-1.5 rounded-lg px-2 text-xs text-muted-foreground transition-colors duration-150 hover:text-foreground motion-reduce:transition-none"
         aria-label={`Se déconnecter (${email})`}
       >
@@ -85,7 +93,11 @@ export function AccountMenu({ email }: AccountMenuProps) {
               </Button>
               <button
                 type="button"
-                onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+                onClick={() => {
+                  setMode(mode === "signin" ? "signup" : "signin");
+                  setError(null);
+                  setConfirmationSent(false);
+                }}
                 className="cursor-pointer text-xs text-muted-foreground underline-offset-2 hover:underline"
               >
                 {mode === "signin" ? "Créer un compte" : "J'ai déjà un compte"}
@@ -93,6 +105,11 @@ export function AccountMenu({ email }: AccountMenuProps) {
               {error && (
                 <p role="alert" className="text-sm text-destructive">
                   {error}
+                </p>
+              )}
+              {confirmationSent && (
+                <p role="status" className="text-sm text-muted-foreground">
+                  Compte créé : vérifie ta boîte mail pour confirmer ton adresse avant de te connecter.
                 </p>
               )}
             </form>

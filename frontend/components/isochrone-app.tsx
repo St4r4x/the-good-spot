@@ -58,7 +58,7 @@ export function IsochroneApp() {
     const removed = housingMarkers[index];
     setHousingMarkers((prev) => removeHousingAt(prev, index));
     setFocus(null);
-    if (removed?.id) {
+    if (removed?.id && supabase) {
       supabase.from("housing_searches").delete().eq("id", removed.id);
     }
   }
@@ -68,12 +68,17 @@ export function IsochroneApp() {
   }
 
   useEffect(() => {
+    if (!supabase) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAuthReady(true);
+      return;
+    }
     let cancelled = false;
 
     async function hydrateFromAccount(userId: string) {
       const [{ data: workplacesRow }, { data: housingRows }] = await Promise.all([
-        supabase.from("workplaces").select("*").eq("user_id", userId).maybeSingle(),
-        supabase
+        supabase!.from("workplaces").select("*").eq("user_id", userId).maybeSingle(),
+        supabase!
           .from("housing_searches")
           .select("*")
           .eq("user_id", userId)
@@ -84,6 +89,10 @@ export function IsochroneApp() {
           WORKPLACES_STORAGE_KEY,
           serializeWorkplaces(workplacesRowToSaved(workplacesRow))
         );
+      } else {
+        // No saved workplaces for this account: clear whatever a previous
+        // account (or anonymous use) left behind on this shared browser.
+        localStorage.removeItem(WORKPLACES_STORAGE_KEY);
       }
       if (housingRows) {
         setHousingMarkers((housingRows as HousingSearchRow[]).map(housingSearchRowToMarker));
@@ -129,6 +138,7 @@ export function IsochroneApp() {
         lastHydratedUserId.current = null;
         setUser(null);
         setHousingMarkers([]);
+        localStorage.removeItem(WORKPLACES_STORAGE_KEY);
       }
     });
 
@@ -184,7 +194,7 @@ export function IsochroneApp() {
       setWork2({ lat: results2[0].lat, lon: results2[0].lon, polygon: polygon2 });
       setResolved1(results1[0].resolved_address);
       setResolved2(results2[0].resolved_address);
-      if (user) {
+      if (user && supabase) {
         await supabase
           .from("workplaces")
           .upsert(
@@ -221,7 +231,7 @@ export function IsochroneApp() {
         modes.map((m) => fetchHousing(address, work1, work2, m))
       );
       const marker = buildHousingMarker(results, intersection);
-      if (user) {
+      if (user && supabase) {
         const { data } = await supabase
           .from("housing_searches")
           .insert(markerToHousingSearchInsert(marker, user.id))

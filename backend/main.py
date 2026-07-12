@@ -164,7 +164,7 @@ def group_for_categories(categories: list[str], groups: list[str]) -> str | None
 
 
 @app.get("/isochrone")
-@limiter.limit(rate_limit_value)
+@limiter.shared_limit(rate_limit_value, scope="geoapify")
 async def isochrone(
     request: Request, address: str, minutes: int, mode: str = "transit"
 ) -> dict:
@@ -197,7 +197,7 @@ async def isochrone(
 
 
 @app.get("/housing")
-@limiter.limit(rate_limit_value)
+@limiter.shared_limit(rate_limit_value, scope="geoapify")
 async def housing(
     request: Request,
     address: str,
@@ -226,7 +226,7 @@ async def housing(
 
 
 @app.get("/pois")
-@limiter.limit(rate_limit_value)
+@limiter.shared_limit(rate_limit_value, scope="geoapify")
 async def pois(request: Request, bbox: str, groups: str) -> dict:
     validated_bbox = parse_bbox(bbox)
     group_list = groups.split(",")

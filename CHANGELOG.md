@@ -10,7 +10,8 @@ versionnage [semver](https://semver.org/lang/fr/).
 ### Added
 - Comptes utilisateurs optionnels (email/mot de passe + Google via
   Supabase Auth) : synchronisation des lieux de travail entre appareils et
-  historique persistant des logements testés.
+  historique persistant des logements testés. Point d'entrée disponible
+  aussi bien sur la landing page que dans l'app.
 - Limitation de débit sur `/isochrone`, `/housing`, `/pois` (30 req/jour
   anonyme par IP, 200 req/jour par compte connecté) pour protéger le quota
   Geoapify partagé.

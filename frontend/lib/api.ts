@@ -37,6 +37,7 @@ export type Poi = {
 export class ApiError extends Error {}
 
 async function authHeaders(): Promise<HeadersInit> {
+  if (!supabase) return {};
   const {
     data: { session },
   } = await supabase.auth.getSession();

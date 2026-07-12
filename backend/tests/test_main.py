@@ -246,3 +246,28 @@ def test_isochrone_authenticated_has_higher_limit(client, auth_headers) -> None:
             headers=headers,
         )
         assert resp.status_code == 200
+
+
+@respx.mock
+def test_rate_limit_is_shared_across_endpoints(client) -> None:
+    respx.get(GEOCODE_URL).mock(return_value=httpx.Response(200, json=GEOCODE_MATCH))
+    respx.get(ISOLINE_URL).mock(
+        return_value=httpx.Response(200, json={"features": [{"type": "Feature"}]})
+    )
+    respx.get(PLACES_URL).mock(return_value=httpx.Response(200, json={"features": []}))
+
+    for _ in range(20):
+        resp = client.get(
+            "/isochrone", params={"address": "Paris", "minutes": 15, "mode": "walk"}
+        )
+        assert resp.status_code == 200
+    for _ in range(10):
+        resp = client.get(
+            "/pois", params={"bbox": "2.3,48.8,2.4,48.9", "groups": "sport"}
+        )
+        assert resp.status_code == 200
+
+    resp = client.get(
+        "/isochrone", params={"address": "Paris", "minutes": 15, "mode": "walk"}
+    )
+    assert resp.status_code == 429
