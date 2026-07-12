@@ -34,9 +34,23 @@ export default function ResetPasswordPage() {
       }
     });
 
-    const timeout = setTimeout(() => {
-      if (!settled) setExpired(true);
-    }, 3000);
+    // ponytail: 8s (was 3s) covers slow mobile/cold-start redirects. One bounded
+    // retry on visibilitychange handles email clients that open the link in a
+    // background tab (settling only starts once the tab is foregrounded) — but
+    // it fires at most once, so a genuinely invalid link still expires instead
+    // of hanging forever.
+    let retried = false;
+    let timeout = setTimeout(onTimeout, 8000);
+
+    function onTimeout() {
+      if (settled) return;
+      if (!retried && document.visibilityState === "hidden") {
+        retried = true;
+        timeout = setTimeout(onTimeout, 8000);
+        return;
+      }
+      setExpired(true);
+    }
 
     return () => {
       subscription.subscription.unsubscribe();

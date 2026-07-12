@@ -55,7 +55,7 @@ export async function fetchIsochrone(
   mode: TravelMode
 ): Promise<IsochroneResult> {
   const params = new URLSearchParams({ address, minutes: String(minutes), mode });
-  const resp = await fetch(`/api/isochrone?${params}`, { headers: await authHeaders() });
+  const resp = await fetch(`/api/zone?${params}`, { headers: await authHeaders() });
   if (!resp.ok) return parseErrorOrThrow(resp);
   return resp.json();
 }
