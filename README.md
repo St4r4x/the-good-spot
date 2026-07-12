@@ -43,8 +43,9 @@ Ouvrir `http://localhost:8080` — la page d'accueil présente le produit, l'app
 carte est sur `/app` (redirige vers `/login` si aucun compte n'est connecté).
 
 Un compte Supabase est nécessaire pour utiliser l'app : renseigner
-`SUPABASE_JWT_SECRET` dans `.env` (Project Settings → Data API → JWT Settings
-du projet Supabase), et créer `frontend/.env.local` avec :
+`SUPABASE_URL` dans `.env` (URL du projet Supabase — le backend vérifie les
+JWT via l'endpoint JWKS `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`), et
+créer `frontend/.env.local` avec :
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://wgfcywjykimvxkwpgdob.supabase.co

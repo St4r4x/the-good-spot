@@ -18,8 +18,14 @@ PLACES_URL = "https://api.geoapify.com/v2/places"
 MAX_MINUTES = 60
 TRAVEL_MODES = {"transit", "walk", "bicycle", "drive"}
 
-SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
 RATE_LIMIT = "200/day"
+
+_jwk_client = (
+    jwt.PyJWKClient(f"{SUPABASE_URL}/auth/v1/.well-known/jwks.json")
+    if SUPABASE_URL
+    else None
+)
 
 POI_GROUPS: dict[str, list[str]] = {
     "education": [
@@ -59,16 +65,13 @@ POI_GROUPS: dict[str, list[str]] = {
 
 def get_current_user_id(request: Request) -> str | None:
     auth_header = request.headers.get("authorization")
-    if (
-        not auth_header
-        or not auth_header.startswith("Bearer ")
-        or not SUPABASE_JWT_SECRET
-    ):
+    if not auth_header or not auth_header.startswith("Bearer ") or not _jwk_client:
         return None
     token = auth_header.removeprefix("Bearer ")
     try:
+        signing_key = _jwk_client.get_signing_key_from_jwt(token)
         payload = jwt.decode(
-            token, SUPABASE_JWT_SECRET, algorithms=["HS256"], audience="authenticated"
+            token, signing_key.key, algorithms=["ES256"], audience="authenticated"
         )
     except jwt.PyJWTError:
         return None

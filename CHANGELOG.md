@@ -18,6 +18,18 @@ versionnage [semver](https://semver.org/lang/fr/).
 ### Added
 - Récupération de mot de passe oublié (`/login` → email → `/reset-password`).
 
+### Fixed
+- Le frontend appelait encore `/api/isochrone` après le renommage en `/zone`,
+  cassant le calcul de zone (404 côté backend).
+- La vérification des JWT côté backend passait en HS256 avec un secret
+  partagé (`SUPABASE_JWT_SECRET`), incompatible avec les projets Supabase
+  récents qui signent en ES256 (clé de signature asymétrique). Le backend
+  vérifie désormais la signature via l'endpoint JWKS du projet
+  (`SUPABASE_URL` remplace `SUPABASE_JWT_SECRET` dans `.env`).
+- Le délai de 3 s avant d'afficher « lien de récupération expiré » sur
+  `/reset-password` déclenchait un faux positif sur les connexions lentes ;
+  porté à 8 s avec une nouvelle tentative si l'onglet était en arrière-plan.
+
 ## [0.7.0] - 2026-07-11
 
 ### Added
