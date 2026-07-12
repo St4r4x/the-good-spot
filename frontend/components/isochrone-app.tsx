@@ -11,10 +11,18 @@ import { ApiError, fetchHousing, fetchIsochrone, fetchPois, type Poi, type PoiGr
 import { computeIntersection, computeUnion, type PolygonFeature } from "@/lib/geo";
 import { buildHousingMarker, removeHousingAt } from "@/lib/housing";
 import { poiBbox, poisInZone } from "@/lib/pois";
-import { WORKPLACES_STORAGE_KEY, parseSavedWorkplaces } from "@/lib/workplaces";
+import { supabase } from "@/lib/supabase/client";
+import {
+  housingSearchRowToMarker,
+  markerToHousingSearchInsert,
+  savedToWorkplacesUpsert,
+  workplacesRowToSaved,
+  type HousingSearchRow,
+} from "@/lib/sync";
+import { WORKPLACES_STORAGE_KEY, parseSavedWorkplaces, serializeWorkplaces } from "@/lib/workplaces";
 import type { HousingMarker, WorkResult } from "@/components/map/isochrone-map";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const IsochroneMap = dynamic(
   () => import("@/components/map/isochrone-map").then((m) => m.IsochroneMap),
@@ -42,15 +50,103 @@ export function IsochroneApp() {
   const [poiGroups, setPoiGroups] = useState<PoiGroup[]>([]);
   const [pois, setPois] = useState<Poi[]>([]);
   const [poiError, setPoiError] = useState<string | null>(null);
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const lastHydratedUserId = useRef<string | null>(null);
 
   function handleRemoveHousing(index: number) {
+    const removed = housingMarkers[index];
     setHousingMarkers((prev) => removeHousingAt(prev, index));
     setFocus(null);
+    if (removed?.id && supabase) {
+      supabase.from("housing_searches").delete().eq("id", removed.id);
+    }
   }
 
   function handleFocusHousing(index: number) {
     setFocus({ index, token: Date.now() });
   }
+
+  useEffect(() => {
+    if (!supabase) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAuthReady(true);
+      return;
+    }
+    let cancelled = false;
+
+    async function hydrateFromAccount(userId: string) {
+      const [{ data: workplacesRow }, { data: housingRows }] = await Promise.all([
+        supabase!.from("workplaces").select("*").eq("user_id", userId).maybeSingle(),
+        supabase!
+          .from("housing_searches")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: true }),
+      ]);
+      if (workplacesRow) {
+        localStorage.setItem(
+          WORKPLACES_STORAGE_KEY,
+          serializeWorkplaces(workplacesRowToSaved(workplacesRow))
+        );
+      } else {
+        // No saved workplaces for this account: clear whatever a previous
+        // account (or anonymous use) left behind on this shared browser.
+        localStorage.removeItem(WORKPLACES_STORAGE_KEY);
+      }
+      if (housingRows) {
+        setHousingMarkers((housingRows as HousingSearchRow[]).map(housingSearchRowToMarker));
+      }
+    }
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (cancelled) return;
+      if (session?.user.email) {
+        try {
+          await hydrateFromAccount(session.user.id);
+          if (cancelled) return;
+          setUser({ id: session.user.id, email: session.user.email });
+          lastHydratedUserId.current = session.user.id;
+        } catch {
+          // Network/Supabase failure on initial load: fall back to the
+          // anonymous view (localStorage/empty history) instead of getting
+          // stuck on the loading state — matches the spec's "pas d'erreur
+          // bloquante" requirement for this case.
+        }
+      }
+      if (!cancelled) setAuthReady(true);
+    });
+
+    const { data: subscription } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session?.user.email) {
+        if (lastHydratedUserId.current === session.user.id) {
+          // Same user re-affirmed (e.g. tab refocus) — @supabase/auth-js fires
+          // SIGNED_IN on visibility regain too, not just on a genuine new login.
+          // Nothing changed, so skip the hydrate+reload.
+          return;
+        }
+        try {
+          await hydrateFromAccount(session.user.id);
+          lastHydratedUserId.current = session.user.id;
+          setUser({ id: session.user.id, email: session.user.email });
+          window.location.reload();
+        } catch {
+          // Same fallback as above: stay on the current (anonymous-looking)
+          // view rather than throwing past this handler.
+        }
+      } else if (event === "SIGNED_OUT") {
+        lastHydratedUserId.current = null;
+        setUser(null);
+        setHousingMarkers([]);
+        localStorage.removeItem(WORKPLACES_STORAGE_KEY);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (poiGroups.length === 0 || !intersection) {
@@ -98,6 +194,16 @@ export function IsochroneApp() {
       setWork2({ lat: results2[0].lat, lon: results2[0].lon, polygon: polygon2 });
       setResolved1(results1[0].resolved_address);
       setResolved2(results2[0].resolved_address);
+      if (user && supabase) {
+        await supabase
+          .from("workplaces")
+          .upsert(
+            savedToWorkplacesUpsert(
+              { address1, address2, minutes: String(minutes), modes: selectedModes },
+              user.id
+            )
+          );
+      }
       setHousingMarkers([]);
 
       const computed = computeIntersection(polygon1, polygon2);
@@ -124,7 +230,20 @@ export function IsochroneApp() {
       const results = await Promise.all(
         modes.map((m) => fetchHousing(address, work1, work2, m))
       );
-      setHousingMarkers((prev) => [...prev, buildHousingMarker(results, intersection)]);
+      const marker = buildHousingMarker(results, intersection);
+      if (user && supabase) {
+        const { data } = await supabase
+          .from("housing_searches")
+          .insert(markerToHousingSearchInsert(marker, user.id))
+          .select()
+          .single();
+        setHousingMarkers((prev) => [
+          ...prev,
+          data ? housingSearchRowToMarker(data as HousingSearchRow) : marker,
+        ]);
+      } else {
+        setHousingMarkers((prev) => [...prev, marker]);
+      }
     } catch (err) {
       setHousingError(err instanceof ApiError ? err.message : "Une erreur est survenue.");
     } finally {
@@ -149,32 +268,38 @@ export function IsochroneApp() {
         </div>
       )}
 
-      <Panel>
-        {showWelcome && <Welcome />}
-        <WorkplaceForm
-          onSubmit={handleWorkplaceSubmit}
-          isLoading={isLoadingWorkplaces}
-          resolved1={resolved1}
-          resolved2={resolved2}
-          error={workplaceError}
-        />
-        <PoiFilters
-          selected={poiGroups}
-          onChange={setPoiGroups}
-          disabled={!intersection}
-          error={poiError}
-        />
-        <HousingForm
-          onSubmit={handleHousingSubmit}
-          isLoading={isLoadingHousing}
-          disabled={!work1 || !work2}
-          error={housingError}
-        />
-        <HousingList
-          items={housingMarkers}
-          onRemove={handleRemoveHousing}
-          onFocus={handleFocusHousing}
-        />
+      <Panel accountEmail={user?.email ?? null}>
+        {!authReady ? (
+          <p className="px-4 py-6 text-center text-sm text-muted-foreground">Chargement…</p>
+        ) : (
+          <>
+            {showWelcome && <Welcome />}
+            <WorkplaceForm
+              onSubmit={handleWorkplaceSubmit}
+              isLoading={isLoadingWorkplaces}
+              resolved1={resolved1}
+              resolved2={resolved2}
+              error={workplaceError}
+            />
+            <PoiFilters
+              selected={poiGroups}
+              onChange={setPoiGroups}
+              disabled={!intersection}
+              error={poiError}
+            />
+            <HousingForm
+              onSubmit={handleHousingSubmit}
+              isLoading={isLoadingHousing}
+              disabled={!work1 || !work2}
+              error={housingError}
+            />
+            <HousingList
+              items={housingMarkers}
+              onRemove={handleRemoveHousing}
+              onFocus={handleFocusHousing}
+            />
+          </>
+        )}
       </Panel>
     </div>
   );

@@ -1,0 +1,8 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Supabase publishable/anon keys are designed to be exposed client-side (protected by RLS), not secrets."
+regexes = [
+  '''sb_publishable_[A-Za-z0-9_-]+''',
+]

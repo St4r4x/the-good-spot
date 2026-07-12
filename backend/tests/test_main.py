@@ -176,3 +176,98 @@ def test_pois_happy_path(client) -> None:
     assert "sport.pitch" in request.url.params["categories"]
     assert request.url.params["filter"] == "rect:2.3,48.8,2.4,48.9"
     assert request.url.params["limit"] == "500"
+
+
+def test_get_current_user_id_returns_none_without_header(client) -> None:
+    from fastapi import Request
+    from main import get_current_user_id
+
+    scope = {"type": "http", "headers": []}
+    request = Request(scope)
+    assert get_current_user_id(request) is None
+
+
+def test_get_current_user_id_returns_sub_for_valid_token(client, auth_headers) -> None:
+    from fastapi import Request
+    from main import get_current_user_id
+
+    headers = auth_headers("22222222-2222-2222-2222-222222222222")
+    scope = {
+        "type": "http",
+        "headers": [(b"authorization", headers["Authorization"].encode())],
+    }
+    request = Request(scope)
+    assert get_current_user_id(request) == "22222222-2222-2222-2222-222222222222"
+
+
+def test_get_current_user_id_returns_none_for_invalid_token() -> None:
+    from fastapi import Request
+    from main import get_current_user_id
+
+    scope = {
+        "type": "http",
+        "headers": [(b"authorization", b"Bearer not-a-real-token")],
+    }
+    request = Request(scope)
+    assert get_current_user_id(request) is None
+
+
+@respx.mock
+def test_isochrone_anonymous_rate_limit(client) -> None:
+    respx.get(GEOCODE_URL).mock(return_value=httpx.Response(200, json=GEOCODE_MATCH))
+    respx.get(ISOLINE_URL).mock(
+        return_value=httpx.Response(200, json={"features": [{"type": "Feature"}]})
+    )
+
+    for _ in range(30):
+        resp = client.get(
+            "/isochrone", params={"address": "Paris", "minutes": 15, "mode": "walk"}
+        )
+        assert resp.status_code == 200
+
+    resp = client.get(
+        "/isochrone", params={"address": "Paris", "minutes": 15, "mode": "walk"}
+    )
+    assert resp.status_code == 429
+
+
+@respx.mock
+def test_isochrone_authenticated_has_higher_limit(client, auth_headers) -> None:
+    respx.get(GEOCODE_URL).mock(return_value=httpx.Response(200, json=GEOCODE_MATCH))
+    respx.get(ISOLINE_URL).mock(
+        return_value=httpx.Response(200, json={"features": [{"type": "Feature"}]})
+    )
+    headers = auth_headers()
+
+    for _ in range(30):
+        resp = client.get(
+            "/isochrone",
+            params={"address": "Paris", "minutes": 15, "mode": "walk"},
+            headers=headers,
+        )
+        assert resp.status_code == 200
+
+
+@respx.mock
+def test_rate_limit_is_shared_across_endpoints(client) -> None:
+    respx.get(GEOCODE_URL).mock(return_value=httpx.Response(200, json=GEOCODE_MATCH))
+    respx.get(ISOLINE_URL).mock(
+        return_value=httpx.Response(200, json={"features": [{"type": "Feature"}]})
+    )
+    respx.get(PLACES_URL).mock(return_value=httpx.Response(200, json={"features": []}))
+
+    for _ in range(20):
+        resp = client.get(
+            "/isochrone", params={"address": "Paris", "minutes": 15, "mode": "walk"}
+        )
+        assert resp.status_code == 200
+    for _ in range(10):
+        resp = client.get(
+            "/pois", params={"bbox": "2.3,48.8,2.4,48.9", "groups": "sport"}
+        )
+        assert resp.status_code == 200
+
+    resp = client.get(
+        "/isochrone", params={"address": "Paris", "minutes": 15, "mode": "walk"}
+    )
+    assert resp.status_code == 429

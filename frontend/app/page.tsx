@@ -1,3 +1,4 @@
+import { LandingAccountMenu } from "@/components/landing-account-menu";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Clock, Home, MapPin } from "lucide-react";
@@ -39,9 +40,12 @@ export default function LandingPage() {
     <div className="min-h-dvh">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
         <span className="text-base font-semibold text-foreground">The Good Spot</span>
-        <Link href="/app" className={cn(buttonVariants())}>
-          Ouvrir la carte
-        </Link>
+        <div className="flex items-center gap-3">
+          <LandingAccountMenu />
+          <Link href="/app" className={cn(buttonVariants())}>
+            Ouvrir la carte
+          </Link>
+        </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-6">

@@ -42,6 +42,19 @@ docker compose up --build
 Ouvrir `http://localhost:8080` — la page d'accueil présente le produit, l'app
 carte est sur `/app`.
 
+Pour activer les comptes utilisateurs (optionnel — l'app fonctionne sans) :
+renseigner `SUPABASE_JWT_SECRET` dans `.env` (Project Settings → Data API
+→ JWT Settings du projet Supabase), et créer `frontend/.env.local` avec :
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://wgfcywjykimvxkwpgdob.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_Kqhf3XYt3o0uQNFe52mojQ_4Ev4NOxu
+```
+
+La connexion Google nécessite en plus des identifiants OAuth configurés
+dans Supabase Auth → Providers → Google (à créer dans Google Cloud
+Console).
+
 ## Structure
 
 ```
@@ -69,3 +82,6 @@ mettre à jour si le positionnement ou le style visuel changent.
 - `GET /pois?bbox=lon1,lat1,lon2,lat2&groups=education,sport,commerce,health,parks,catering,public_transport,culture`
   → retourne les points d'intérêt Geoapify dans le rectangle englobant,
   groupés par catégorie (`name` peut être `null`).
+- `/isochrone`, `/housing`, `/pois` sont limités en débit (30 req/jour par
+  IP anonyme, 200 req/jour par compte connecté via un JWT Supabase en
+  en-tête `Authorization: Bearer <token>`).

@@ -1,3 +1,5 @@
+import { supabase } from "./supabase/client";
+
 export type TravelMode = "transit" | "walk" | "bicycle" | "drive";
 
 export type IsochroneResult = {
@@ -34,6 +36,14 @@ export type Poi = {
 
 export class ApiError extends Error {}
 
+async function authHeaders(): Promise<HeadersInit> {
+  if (!supabase) return {};
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return session ? { Authorization: `Bearer ${session.access_token}` } : {};
+}
+
 async function parseErrorOrThrow(resp: Response): Promise<never> {
   const detail = await resp.json().catch(() => ({}));
   throw new ApiError(detail.detail || `Erreur ${resp.status}`);
@@ -45,7 +55,7 @@ export async function fetchIsochrone(
   mode: TravelMode
 ): Promise<IsochroneResult> {
   const params = new URLSearchParams({ address, minutes: String(minutes), mode });
-  const resp = await fetch(`/api/isochrone?${params}`);
+  const resp = await fetch(`/api/isochrone?${params}`, { headers: await authHeaders() });
   if (!resp.ok) return parseErrorOrThrow(resp);
   return resp.json();
 }
@@ -64,7 +74,7 @@ export async function fetchHousing(
     work2_lon: String(work2.lon),
     mode,
   });
-  const resp = await fetch(`/api/housing?${params}`);
+  const resp = await fetch(`/api/housing?${params}`, { headers: await authHeaders() });
   if (!resp.ok) return parseErrorOrThrow(resp);
   return resp.json();
 }
@@ -77,7 +87,7 @@ export async function fetchPois(
     bbox: bbox.join(","),
     groups: groups.join(","),
   });
-  const resp = await fetch(`/api/pois?${params}`);
+  const resp = await fetch(`/api/pois?${params}`, { headers: await authHeaders() });
   if (!resp.ok) return parseErrorOrThrow(resp);
   const data = await resp.json();
   return data.pois;
