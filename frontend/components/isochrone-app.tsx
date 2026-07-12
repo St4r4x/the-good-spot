@@ -12,7 +12,13 @@ import { computeIntersection, computeUnion, type PolygonFeature } from "@/lib/ge
 import { buildHousingMarker, removeHousingAt } from "@/lib/housing";
 import { poiBbox, poisInZone } from "@/lib/pois";
 import { supabase } from "@/lib/supabase/client";
-import { housingSearchRowToMarker, workplacesRowToSaved, type HousingSearchRow } from "@/lib/sync";
+import {
+  housingSearchRowToMarker,
+  markerToHousingSearchInsert,
+  savedToWorkplacesUpsert,
+  workplacesRowToSaved,
+  type HousingSearchRow,
+} from "@/lib/sync";
 import { WORKPLACES_STORAGE_KEY, parseSavedWorkplaces, serializeWorkplaces } from "@/lib/workplaces";
 import type { HousingMarker, WorkResult } from "@/components/map/isochrone-map";
 import dynamic from "next/dynamic";
@@ -49,8 +55,12 @@ export function IsochroneApp() {
   const lastHydratedUserId = useRef<string | null>(null);
 
   function handleRemoveHousing(index: number) {
+    const removed = housingMarkers[index];
     setHousingMarkers((prev) => removeHousingAt(prev, index));
     setFocus(null);
+    if (removed?.id) {
+      supabase.from("housing_searches").delete().eq("id", removed.id);
+    }
   }
 
   function handleFocusHousing(index: number) {
@@ -174,6 +184,16 @@ export function IsochroneApp() {
       setWork2({ lat: results2[0].lat, lon: results2[0].lon, polygon: polygon2 });
       setResolved1(results1[0].resolved_address);
       setResolved2(results2[0].resolved_address);
+      if (user) {
+        await supabase
+          .from("workplaces")
+          .upsert(
+            savedToWorkplacesUpsert(
+              { address1, address2, minutes: String(minutes), modes: selectedModes },
+              user.id
+            )
+          );
+      }
       setHousingMarkers([]);
 
       const computed = computeIntersection(polygon1, polygon2);
@@ -200,7 +220,20 @@ export function IsochroneApp() {
       const results = await Promise.all(
         modes.map((m) => fetchHousing(address, work1, work2, m))
       );
-      setHousingMarkers((prev) => [...prev, buildHousingMarker(results, intersection)]);
+      const marker = buildHousingMarker(results, intersection);
+      if (user) {
+        const { data } = await supabase
+          .from("housing_searches")
+          .insert(markerToHousingSearchInsert(marker, user.id))
+          .select()
+          .single();
+        setHousingMarkers((prev) => [
+          ...prev,
+          data ? housingSearchRowToMarker(data as HousingSearchRow) : marker,
+        ]);
+      } else {
+        setHousingMarkers((prev) => [...prev, marker]);
+      }
     } catch (err) {
       setHousingError(err instanceof ApiError ? err.message : "Une erreur est survenue.");
     } finally {
