@@ -11,7 +11,9 @@ import { ApiError, fetchHousing, fetchIsochrone, fetchPois, type Poi, type PoiGr
 import { computeIntersection, computeUnion, type PolygonFeature } from "@/lib/geo";
 import { buildHousingMarker, removeHousingAt } from "@/lib/housing";
 import { poiBbox, poisInZone } from "@/lib/pois";
-import { WORKPLACES_STORAGE_KEY, parseSavedWorkplaces } from "@/lib/workplaces";
+import { supabase } from "@/lib/supabase/client";
+import { housingSearchRowToMarker, workplacesRowToSaved, type HousingSearchRow } from "@/lib/sync";
+import { WORKPLACES_STORAGE_KEY, parseSavedWorkplaces, serializeWorkplaces } from "@/lib/workplaces";
 import type { HousingMarker, WorkResult } from "@/components/map/isochrone-map";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
@@ -42,6 +44,8 @@ export function IsochroneApp() {
   const [poiGroups, setPoiGroups] = useState<PoiGroup[]>([]);
   const [pois, setPois] = useState<Poi[]>([]);
   const [poiError, setPoiError] = useState<string | null>(null);
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+  const [authReady, setAuthReady] = useState(false);
 
   function handleRemoveHousing(index: number) {
     setHousingMarkers((prev) => removeHousingAt(prev, index));
@@ -51,6 +55,68 @@ export function IsochroneApp() {
   function handleFocusHousing(index: number) {
     setFocus({ index, token: Date.now() });
   }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateFromAccount(userId: string) {
+      const [{ data: workplacesRow }, { data: housingRows }] = await Promise.all([
+        supabase.from("workplaces").select("*").eq("user_id", userId).maybeSingle(),
+        supabase
+          .from("housing_searches")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: true }),
+      ]);
+      if (workplacesRow) {
+        localStorage.setItem(
+          WORKPLACES_STORAGE_KEY,
+          serializeWorkplaces(workplacesRowToSaved(workplacesRow))
+        );
+      }
+      if (housingRows) {
+        setHousingMarkers((housingRows as HousingSearchRow[]).map(housingSearchRowToMarker));
+      }
+    }
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (cancelled) return;
+      if (session?.user.email) {
+        try {
+          await hydrateFromAccount(session.user.id);
+          if (cancelled) return;
+          setUser({ id: session.user.id, email: session.user.email });
+        } catch {
+          // Network/Supabase failure on initial load: fall back to the
+          // anonymous view (localStorage/empty history) instead of getting
+          // stuck on the loading state — matches the spec's "pas d'erreur
+          // bloquante" requirement for this case.
+        }
+      }
+      if (!cancelled) setAuthReady(true);
+    });
+
+    const { data: subscription } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session?.user.email) {
+        try {
+          await hydrateFromAccount(session.user.id);
+          setUser({ id: session.user.id, email: session.user.email });
+          window.location.reload();
+        } catch {
+          // Same fallback as above: stay on the current (anonymous-looking)
+          // view rather than throwing past this handler.
+        }
+      } else if (event === "SIGNED_OUT") {
+        setUser(null);
+        setHousingMarkers([]);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (poiGroups.length === 0 || !intersection) {
@@ -149,33 +215,38 @@ export function IsochroneApp() {
         </div>
       )}
 
-      {/* Temporary null — Task 4 wires the real session email here. */}
-      <Panel accountEmail={null}>
-        {showWelcome && <Welcome />}
-        <WorkplaceForm
-          onSubmit={handleWorkplaceSubmit}
-          isLoading={isLoadingWorkplaces}
-          resolved1={resolved1}
-          resolved2={resolved2}
-          error={workplaceError}
-        />
-        <PoiFilters
-          selected={poiGroups}
-          onChange={setPoiGroups}
-          disabled={!intersection}
-          error={poiError}
-        />
-        <HousingForm
-          onSubmit={handleHousingSubmit}
-          isLoading={isLoadingHousing}
-          disabled={!work1 || !work2}
-          error={housingError}
-        />
-        <HousingList
-          items={housingMarkers}
-          onRemove={handleRemoveHousing}
-          onFocus={handleFocusHousing}
-        />
+      <Panel accountEmail={user?.email ?? null}>
+        {!authReady ? (
+          <p className="px-4 py-6 text-center text-sm text-muted-foreground">Chargement…</p>
+        ) : (
+          <>
+            {showWelcome && <Welcome />}
+            <WorkplaceForm
+              onSubmit={handleWorkplaceSubmit}
+              isLoading={isLoadingWorkplaces}
+              resolved1={resolved1}
+              resolved2={resolved2}
+              error={workplaceError}
+            />
+            <PoiFilters
+              selected={poiGroups}
+              onChange={setPoiGroups}
+              disabled={!intersection}
+              error={poiError}
+            />
+            <HousingForm
+              onSubmit={handleHousingSubmit}
+              isLoading={isLoadingHousing}
+              disabled={!work1 || !work2}
+              error={housingError}
+            />
+            <HousingList
+              items={housingMarkers}
+              onRemove={handleRemoveHousing}
+              onFocus={handleFocusHousing}
+            />
+          </>
+        )}
       </Panel>
     </div>
   );
