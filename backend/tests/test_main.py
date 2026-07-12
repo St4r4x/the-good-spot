@@ -25,38 +25,67 @@ def test_validate_mode_rejects_unknown_mode() -> None:
 
 
 @respx.mock
-def test_isochrone_rejects_minutes_out_of_range(client) -> None:
-    resp = client.get("/isochrone", params={"address": "Paris", "minutes": 0})
-    assert resp.status_code == 400
-
-    resp = client.get("/isochrone", params={"address": "Paris", "minutes": 61})
-    assert resp.status_code == 400
+def test_zone_requires_auth(client) -> None:
+    resp = client.get("/zone", params={"address": "Paris", "minutes": 15})
+    assert resp.status_code == 401
 
 
 @respx.mock
-def test_isochrone_rejects_unknown_mode(client) -> None:
+def test_zone_rejects_invalid_token(client) -> None:
     resp = client.get(
-        "/isochrone", params={"address": "Paris", "minutes": 15, "mode": "teleport"}
+        "/zone",
+        params={"address": "Paris", "minutes": 15},
+        headers={"Authorization": "Bearer not-a-real-token"},
+    )
+    assert resp.status_code == 401
+
+
+@respx.mock
+def test_zone_rejects_minutes_out_of_range(client, auth_headers) -> None:
+    headers = auth_headers()
+    resp = client.get(
+        "/zone", params={"address": "Paris", "minutes": 0}, headers=headers
+    )
+    assert resp.status_code == 400
+
+    resp = client.get(
+        "/zone", params={"address": "Paris", "minutes": 61}, headers=headers
     )
     assert resp.status_code == 400
 
 
 @respx.mock
-def test_isochrone_returns_404_for_unknown_address(client) -> None:
+def test_zone_rejects_unknown_mode(client, auth_headers) -> None:
+    resp = client.get(
+        "/zone",
+        params={"address": "Paris", "minutes": 15, "mode": "teleport"},
+        headers=auth_headers(),
+    )
+    assert resp.status_code == 400
+
+
+@respx.mock
+def test_zone_returns_404_for_unknown_address(client, auth_headers) -> None:
     respx.get(GEOCODE_URL).mock(return_value=httpx.Response(200, json={"features": []}))
-    resp = client.get("/isochrone", params={"address": "Nowhereville", "minutes": 15})
+    resp = client.get(
+        "/zone",
+        params={"address": "Nowhereville", "minutes": 15},
+        headers=auth_headers(),
+    )
     assert resp.status_code == 404
 
 
 @respx.mock
-def test_isochrone_happy_path(client) -> None:
+def test_zone_happy_path(client, auth_headers) -> None:
     respx.get(GEOCODE_URL).mock(return_value=httpx.Response(200, json=GEOCODE_MATCH))
     respx.get(ISOLINE_URL).mock(
         return_value=httpx.Response(200, json={"features": [{"type": "Feature"}]})
     )
 
     resp = client.get(
-        "/isochrone", params={"address": "Paris", "minutes": 15, "mode": "walk"}
+        "/zone",
+        params={"address": "Paris", "minutes": 15, "mode": "walk"},
+        headers=auth_headers(),
     )
     assert resp.status_code == 200
     body = resp.json()
@@ -71,7 +100,22 @@ def test_isochrone_happy_path(client) -> None:
 
 
 @respx.mock
-def test_housing_rejects_unknown_mode(client) -> None:
+def test_housing_requires_auth(client) -> None:
+    resp = client.get(
+        "/housing",
+        params={
+            "address": "Paris",
+            "work1_lat": 48.85,
+            "work1_lon": 2.35,
+            "work2_lat": 48.86,
+            "work2_lon": 2.36,
+        },
+    )
+    assert resp.status_code == 401
+
+
+@respx.mock
+def test_housing_rejects_unknown_mode(client, auth_headers) -> None:
     resp = client.get(
         "/housing",
         params={
@@ -82,12 +126,13 @@ def test_housing_rejects_unknown_mode(client) -> None:
             "work2_lon": 2.36,
             "mode": "teleport",
         },
+        headers=auth_headers(),
     )
     assert resp.status_code == 400
 
 
 @respx.mock
-def test_housing_happy_path(client) -> None:
+def test_housing_happy_path(client, auth_headers) -> None:
     respx.get(GEOCODE_URL).mock(return_value=httpx.Response(200, json=GEOCODE_MATCH))
     respx.get(ROUTING_URL).mock(
         return_value=httpx.Response(
@@ -105,6 +150,7 @@ def test_housing_happy_path(client) -> None:
             "work2_lon": 2.36,
             "mode": "bicycle",
         },
+        headers=auth_headers(),
     )
     assert resp.status_code == 200
     body = resp.json()
@@ -116,21 +162,33 @@ def test_housing_happy_path(client) -> None:
 
 
 @respx.mock
-def test_pois_rejects_unknown_group(client) -> None:
+def test_pois_requires_auth(client) -> None:
+    resp = client.get("/pois", params={"bbox": "2.3,48.8,2.4,48.9", "groups": "sport"})
+    assert resp.status_code == 401
+
+
+@respx.mock
+def test_pois_rejects_unknown_group(client, auth_headers) -> None:
     resp = client.get(
-        "/pois", params={"bbox": "2.3,48.8,2.4,48.9", "groups": "not_a_group"}
+        "/pois",
+        params={"bbox": "2.3,48.8,2.4,48.9", "groups": "not_a_group"},
+        headers=auth_headers(),
     )
     assert resp.status_code == 400
 
 
 @respx.mock
-def test_pois_rejects_invalid_bbox(client) -> None:
-    resp = client.get("/pois", params={"bbox": "2.3,48.8,2.4", "groups": "sport"})
+def test_pois_rejects_invalid_bbox(client, auth_headers) -> None:
+    resp = client.get(
+        "/pois",
+        params={"bbox": "2.3,48.8,2.4", "groups": "sport"},
+        headers=auth_headers(),
+    )
     assert resp.status_code == 400
 
 
 @respx.mock
-def test_pois_happy_path(client) -> None:
+def test_pois_happy_path(client, auth_headers) -> None:
     respx.get(PLACES_URL).mock(
         return_value=httpx.Response(
             200,
@@ -153,7 +211,9 @@ def test_pois_happy_path(client) -> None:
     )
 
     resp = client.get(
-        "/pois", params={"bbox": "2.3,48.8,2.4,48.9", "groups": "education,sport"}
+        "/pois",
+        params={"bbox": "2.3,48.8,2.4,48.9", "groups": "education,sport"},
+        headers=auth_headers(),
     )
     assert resp.status_code == 200
     body = resp.json()
@@ -213,26 +273,7 @@ def test_get_current_user_id_returns_none_for_invalid_token() -> None:
 
 
 @respx.mock
-def test_isochrone_anonymous_rate_limit(client) -> None:
-    respx.get(GEOCODE_URL).mock(return_value=httpx.Response(200, json=GEOCODE_MATCH))
-    respx.get(ISOLINE_URL).mock(
-        return_value=httpx.Response(200, json={"features": [{"type": "Feature"}]})
-    )
-
-    for _ in range(30):
-        resp = client.get(
-            "/isochrone", params={"address": "Paris", "minutes": 15, "mode": "walk"}
-        )
-        assert resp.status_code == 200
-
-    resp = client.get(
-        "/isochrone", params={"address": "Paris", "minutes": 15, "mode": "walk"}
-    )
-    assert resp.status_code == 429
-
-
-@respx.mock
-def test_isochrone_authenticated_has_higher_limit(client, auth_headers) -> None:
+def test_zone_authenticated_requests_succeed(client, auth_headers) -> None:
     respx.get(GEOCODE_URL).mock(return_value=httpx.Response(200, json=GEOCODE_MATCH))
     respx.get(ISOLINE_URL).mock(
         return_value=httpx.Response(200, json={"features": [{"type": "Feature"}]})
@@ -241,7 +282,7 @@ def test_isochrone_authenticated_has_higher_limit(client, auth_headers) -> None:
 
     for _ in range(30):
         resp = client.get(
-            "/isochrone",
+            "/zone",
             params={"address": "Paris", "minutes": 15, "mode": "walk"},
             headers=headers,
         )
@@ -249,25 +290,32 @@ def test_isochrone_authenticated_has_higher_limit(client, auth_headers) -> None:
 
 
 @respx.mock
-def test_rate_limit_is_shared_across_endpoints(client) -> None:
+def test_rate_limit_is_shared_across_endpoints(client, auth_headers) -> None:
     respx.get(GEOCODE_URL).mock(return_value=httpx.Response(200, json=GEOCODE_MATCH))
     respx.get(ISOLINE_URL).mock(
         return_value=httpx.Response(200, json={"features": [{"type": "Feature"}]})
     )
     respx.get(PLACES_URL).mock(return_value=httpx.Response(200, json={"features": []}))
+    headers = auth_headers()
 
-    for _ in range(20):
+    for _ in range(150):
         resp = client.get(
-            "/isochrone", params={"address": "Paris", "minutes": 15, "mode": "walk"}
+            "/zone",
+            params={"address": "Paris", "minutes": 15, "mode": "walk"},
+            headers=headers,
         )
         assert resp.status_code == 200
-    for _ in range(10):
+    for _ in range(50):
         resp = client.get(
-            "/pois", params={"bbox": "2.3,48.8,2.4,48.9", "groups": "sport"}
+            "/pois",
+            params={"bbox": "2.3,48.8,2.4,48.9", "groups": "sport"},
+            headers=headers,
         )
         assert resp.status_code == 200
 
     resp = client.get(
-        "/isochrone", params={"address": "Paris", "minutes": 15, "mode": "walk"}
+        "/zone",
+        params={"address": "Paris", "minutes": 15, "mode": "walk"},
+        headers=headers,
     )
     assert resp.status_code == 429

@@ -4,7 +4,7 @@ import os
 import httpx
 import jwt
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -19,8 +19,7 @@ MAX_MINUTES = 60
 TRAVEL_MODES = {"transit", "walk", "bicycle", "drive"}
 
 SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET")
-ANONYMOUS_RATE_LIMIT = "30/day"
-AUTHENTICATED_RATE_LIMIT = "200/day"
+RATE_LIMIT = "200/day"
 
 POI_GROUPS: dict[str, list[str]] = {
     "education": [
@@ -76,22 +75,18 @@ def get_current_user_id(request: Request) -> str | None:
     return payload.get("sub")
 
 
-def rate_limit_key(request: Request) -> str:
+def require_user_id(request: Request) -> str:
     user_id = get_current_user_id(request)
-    if user_id:
-        return f"user:{user_id}"
-    host = request.client.host if request.client else "unknown"
-    return f"ip:{host}"
+    if user_id is None:
+        raise HTTPException(401, "Authentification requise.")
+    return user_id
 
 
-# slowapi calls this with rate_limit_key's return value (it inspects this
-# function's sole parameter name — must be literally "key" — see
-# LimitGroup.__iter__ in slowapi/wrappers.py). The "user:"/"ip:" prefix
-# from rate_limit_key disambiguates identity type without guessing from
-# the value's shape (a raw UUID string could otherwise be confused with
-# some other identifier format in the future).
-def rate_limit_value(key: str) -> str:
-    return AUTHENTICATED_RATE_LIMIT if key.startswith("user:") else ANONYMOUS_RATE_LIMIT
+def rate_limit_key(request: Request) -> str:
+    # require_user_id (dépendance FastAPI déclarée sur chaque endpoint) a déjà
+    # rejeté avec 401 toute requête sans JWT valide avant que ce code ne
+    # s'exécute — user_id est donc toujours présent ici.
+    return f"user:{get_current_user_id(request)}"
 
 
 limiter = Limiter(key_func=rate_limit_key)
@@ -163,10 +158,14 @@ def group_for_categories(categories: list[str], groups: list[str]) -> str | None
     return None
 
 
-@app.get("/isochrone")
-@limiter.shared_limit(rate_limit_value, scope="geoapify")
-async def isochrone(
-    request: Request, address: str, minutes: int, mode: str = "transit"
+@app.get("/zone")
+@limiter.shared_limit(RATE_LIMIT, scope="geoapify")
+async def zone(
+    request: Request,
+    address: str,
+    minutes: int,
+    mode: str = "transit",
+    _user_id: str = Depends(require_user_id),
 ) -> dict:
     if minutes <= 0 or minutes > MAX_MINUTES:
         raise HTTPException(400, f"minutes doit être entre 1 et {MAX_MINUTES}")
@@ -197,7 +196,7 @@ async def isochrone(
 
 
 @app.get("/housing")
-@limiter.shared_limit(rate_limit_value, scope="geoapify")
+@limiter.shared_limit(RATE_LIMIT, scope="geoapify")
 async def housing(
     request: Request,
     address: str,
@@ -206,6 +205,7 @@ async def housing(
     work2_lat: float,
     work2_lon: float,
     mode: str = "transit",
+    _user_id: str = Depends(require_user_id),
 ) -> dict:
     validate_mode(mode)
     async with httpx.AsyncClient(timeout=30) as client:
@@ -226,8 +226,10 @@ async def housing(
 
 
 @app.get("/pois")
-@limiter.shared_limit(rate_limit_value, scope="geoapify")
-async def pois(request: Request, bbox: str, groups: str) -> dict:
+@limiter.shared_limit(RATE_LIMIT, scope="geoapify")
+async def pois(
+    request: Request, bbox: str, groups: str, _user_id: str = Depends(require_user_id)
+) -> dict:
     validated_bbox = parse_bbox(bbox)
     group_list = groups.split(",")
     validate_groups(group_list)
