@@ -16,7 +16,7 @@ import { housingSearchRowToMarker, workplacesRowToSaved, type HousingSearchRow }
 import { WORKPLACES_STORAGE_KEY, parseSavedWorkplaces, serializeWorkplaces } from "@/lib/workplaces";
 import type { HousingMarker, WorkResult } from "@/components/map/isochrone-map";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const IsochroneMap = dynamic(
   () => import("@/components/map/isochrone-map").then((m) => m.IsochroneMap),
@@ -46,6 +46,7 @@ export function IsochroneApp() {
   const [poiError, setPoiError] = useState<string | null>(null);
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [authReady, setAuthReady] = useState(false);
+  const lastHydratedUserId = useRef<string | null>(null);
 
   function handleRemoveHousing(index: number) {
     setHousingMarkers((prev) => removeHousingAt(prev, index));
@@ -86,6 +87,7 @@ export function IsochroneApp() {
           await hydrateFromAccount(session.user.id);
           if (cancelled) return;
           setUser({ id: session.user.id, email: session.user.email });
+          lastHydratedUserId.current = session.user.id;
         } catch {
           // Network/Supabase failure on initial load: fall back to the
           // anonymous view (localStorage/empty history) instead of getting
@@ -98,8 +100,15 @@ export function IsochroneApp() {
 
     const { data: subscription } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session?.user.email) {
+        if (lastHydratedUserId.current === session.user.id) {
+          // Same user re-affirmed (e.g. tab refocus) — @supabase/auth-js fires
+          // SIGNED_IN on visibility regain too, not just on a genuine new login.
+          // Nothing changed, so skip the hydrate+reload.
+          return;
+        }
         try {
           await hydrateFromAccount(session.user.id);
+          lastHydratedUserId.current = session.user.id;
           setUser({ id: session.user.id, email: session.user.email });
           window.location.reload();
         } catch {
@@ -107,6 +116,7 @@ export function IsochroneApp() {
           // view rather than throwing past this handler.
         }
       } else if (event === "SIGNED_OUT") {
+        lastHydratedUserId.current = null;
         setUser(null);
         setHousingMarkers([]);
       }
