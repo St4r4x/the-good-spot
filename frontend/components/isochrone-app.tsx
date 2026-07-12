@@ -149,7 +149,8 @@ export function IsochroneApp() {
         </div>
       )}
 
-      <Panel>
+      {/* Temporary null — Task 4 wires the real session email here. */}
+      <Panel accountEmail={null}>
         {showWelcome && <Welcome />}
         <WorkplaceForm
           onSubmit={handleWorkplaceSubmit}
