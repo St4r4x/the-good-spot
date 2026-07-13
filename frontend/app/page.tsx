@@ -21,7 +21,7 @@ export default function LandingPage() {
     <div className="min-h-dvh">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
         <span className="flex items-center gap-2 text-base font-semibold text-foreground">
-          <Image src="/logo-mark.png" alt="" width={213} height={60} className="h-7 w-auto" />
+          <Image src="/logo-mark.png" alt="" width={861} height={248} className="h-7 w-auto" />
           The Good Spot
         </span>
         <Link href="/app" className={cn(buttonVariants())}>

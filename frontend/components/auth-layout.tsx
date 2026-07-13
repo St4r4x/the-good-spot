@@ -18,7 +18,7 @@ export function AuthLayout({ illustration: Illustration, caption, children }: Au
       </div>
       <div className="flex flex-col px-6 py-8 md:order-1 md:justify-center md:px-16">
         <Link href="/" className="flex items-center gap-2 text-base font-semibold text-foreground">
-          <Image src="/logo-mark.png" alt="" width={213} height={60} className="h-7 w-auto" />
+          <Image src="/logo-mark.png" alt="" width={861} height={248} className="h-7 w-auto" />
           The Good Spot
         </Link>
         <div className="mt-8">{children}</div>
