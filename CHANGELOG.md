@@ -27,12 +27,12 @@ versionnage [semver](https://semver.org/lang/fr/).
   `JourneyIllustration`/`KeyIllustration`/`CompassIllustration`, nouveau
   layout partagé `AuthLayout`). La landing remplace ses deux grilles de
   3 cartes répétées par un récit en deux colonnes, conformément à
-  `DESIGN.md`.
+  `DESIGN.md`. Le visuel principal du hero reste la capture d'écran de
+  l'app (`public/app-preview.webp`), désormais dans le layout 2 colonnes.
 
 ### Removed
-- Composant `Welcome` (panneau vide de premier accès) et
-  `public/app-preview.webp`, remplacés par l'onboarding et les nouvelles
-  illustrations.
+- Composant `Welcome` (panneau vide de premier accès), remplacé par
+  l'onboarding.
 
 ## [1.0.0] - 2026-07-12
 

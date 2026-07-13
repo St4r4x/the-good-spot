@@ -13,6 +13,7 @@ export const metadata: Metadata = {
     title: "The Good Spot — trouvez où vivre à mi-chemin",
     description:
       "Deux trajets différents, une seule adresse qui convient aux deux — calculée sur de vrais temps de trajet.",
+    images: ["/app-preview.webp"],
   },
 };
 
@@ -44,8 +45,14 @@ export default function LandingPage() {
               Ouvrir la carte
             </Link>
           </div>
-          <div className="flex items-center justify-center rounded-xl bg-primary/5 py-10">
-            <JourneyIllustration className="h-40 w-auto text-primary md:h-56" />
+          <div className="overflow-hidden rounded-xl border border-border">
+            <Image
+              src="/app-preview.webp"
+              width={1440}
+              height={900}
+              alt="L'application The Good Spot : deux zones de trajet autour de Paris et leur zone commune sur la carte, avec un logement testé dans le panneau"
+              className="w-full"
+            />
           </div>
         </section>
 
