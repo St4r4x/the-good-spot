@@ -10,12 +10,17 @@ import type { ElementType, HTMLAttributes } from "react";
  * dependency — CSS (see `revealClasses`) does the actual animating and is
  * itself neutralized under `prefers-reduced-motion: reduce`.
  *
+ * Progressive enhancement: content is visible by default in server-rendered
+ * markup (no JS required to see it). Only after mount does JS opt the
+ * element into the "armed" (hidden-until-scrolled-into-view) state, so the
+ * animation is additive rather than gating content on JS executing at all.
+ *
  * Client-only (needs useRef/useEffect/IntersectionObserver), split out of
  * app/page.tsx so the page itself can stay a Server Component and keep
  * exporting `metadata`.
  */
 export const revealClasses =
-  "opacity-0 translate-y-8 transition-all duration-700 ease-out data-[visible=true]:opacity-100 data-[visible=true]:translate-y-0 motion-reduce:opacity-100 motion-reduce:translate-y-0 motion-reduce:transition-none";
+  "transition-all duration-700 ease-out data-[armed=true]:data-[visible=false]:opacity-0 data-[armed=true]:data-[visible=false]:translate-y-8 motion-reduce:transition-none";
 
 export function Reveal({
   as: As = "div",
@@ -29,9 +34,11 @@ export function Reveal({
     const el = ref.current;
     if (!el) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      el.dataset.visible = "true";
       return;
     }
+    // Arm the hidden state only once JS has actually mounted, then reveal
+    // on scroll — content stays visible the whole time if this never runs.
+    el.dataset.armed = "true";
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
