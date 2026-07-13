@@ -5,6 +5,15 @@ versionnage [semver](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-07-13
+
+### Changed
+- Landing page (`/`) redesign: bolder, more energetic visual identity
+  with scroll/hover motion — this page is intentionally exempt from
+  `DESIGN.md`'s one-accent-color and flat-by-default rules; the rest of
+  the funnel (`/login`, `/reset-password`, `/onboarding`, `/app`) is
+  unaffected and still follows `DESIGN.md`.
+
 ## [1.1.0] - 2026-07-12
 
 ### Added
