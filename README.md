@@ -40,7 +40,8 @@ docker compose up --build
 ```
 
 Ouvrir `http://localhost:8080` — la page d'accueil présente le produit, l'app
-carte est sur `/app` (redirige vers `/login` si aucun compte n'est connecté).
+carte est sur `/app` (redirige vers `/login` si aucun compte n'est connecté,
+puis vers `/onboarding` en 3 étapes tant que le profil n'est pas complet).
 
 Un compte Supabase est nécessaire pour utiliser l'app : renseigner
 `SUPABASE_URL` dans `.env` (URL du projet Supabase — le backend vérifie les

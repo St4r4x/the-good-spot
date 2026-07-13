@@ -3,6 +3,7 @@ import {
   housingSearchRowToMarker,
   markerToHousingSearchInsert,
   savedToWorkplacesUpsert,
+  workplacesRowToDefaultPoiGroups,
   workplacesRowToSaved,
   type HousingSearchRow,
   type WorkplacesRow,
@@ -18,6 +19,7 @@ describe("workplacesRowToSaved", () => {
       address2: "2 rue B",
       minutes: 45,
       modes: ["transit", "walk"],
+      default_poi_groups: ["sport", "health"],
       updated_at: "2026-07-11T00:00:00Z",
     };
     expect(workplacesRowToSaved(row)).toEqual({
@@ -26,6 +28,21 @@ describe("workplacesRowToSaved", () => {
       minutes: "45",
       modes: ["transit", "walk"],
     });
+  });
+});
+
+describe("workplacesRowToDefaultPoiGroups", () => {
+  it("maps a Postgres row's default_poi_groups to PoiGroup[]", () => {
+    const row: WorkplacesRow = {
+      user_id: "u1",
+      address1: "1 rue A",
+      address2: "2 rue B",
+      minutes: 45,
+      modes: ["transit", "walk"],
+      default_poi_groups: ["sport", "health"],
+      updated_at: "2026-07-11T00:00:00Z",
+    };
+    expect(workplacesRowToDefaultPoiGroups(row)).toEqual(["sport", "health"]);
   });
 });
 
@@ -45,6 +62,7 @@ describe("savedToWorkplacesUpsert", () => {
       modes: ["transit", "walk"],
     });
   });
+
 });
 
 describe("housingSearchRowToMarker", () => {

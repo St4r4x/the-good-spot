@@ -90,6 +90,29 @@ seed mode ne fabrique pas de composants avant qu'il y ait du code.]
 - **Clustering:** cercle cluster entièrement teal — anneau externe à 30% d'opacité (`color-mix(in oklch, var(--primary) 30%, transparent)`) + cercle interne `var(--primary)` avec texte `var(--primary-foreground)` ; remplace les couleurs par défaut de leaflet.markercluster.
 - **Visual Hierarchy:** distinction entre groupes POI (éducation, sport, santé, etc.) par icône uniquement, pas par couleur — la carte porte ses couleurs fonctionnelles indépendamment de The One Accent Rule.
 
+### Logo
+- **Style:** marque "pins + maison + itinéraire pointillé" en trait teal
+  mono-couleur sur fond transparent, cohérente avec le système
+  d'illustrations ci-dessous mais traitée comme une marque à part —
+  `frontend/public/logo-mark.png` (large, header/`AuthLayout`) et
+  `frontend/app/icon.png` (maison seule, trait épaissi pour la lisibilité en
+  favicon 16-32px).
+- **Usage:** header de la landing et lien logo de `AuthLayout`, toujours
+  accompagné du wordmark texte "The Good Spot" (l'icône seule ne porte pas
+  le nom).
+
+### Illustrations
+- **Style:** scènes SVG line-art mono-couleur, dessinées à la main comme
+  composants React (`frontend/components/illustrations/`) — jamais de
+  librairie d'illustrations externe, jamais d'image générée.
+- **Couleur:** `stroke="currentColor"`, hérite toujours de `--primary` via
+  une classe `text-primary` sur le conteneur — jamais de dégradé ni de
+  deuxième couleur, cohérent avec The One Accent Rule.
+- **Fil visuel:** trois scènes réutilisées à travers tout le funnel public
+  pour rester identifiables — `JourneyIllustration` (landing, connexion),
+  `KeyIllustration` (mot de passe oublié / réinitialisation),
+  `CompassIllustration` (onboarding).
+
 ### Account Menu
 - **Connecté uniquement** : `/app` n'est jamais accessible sans compte, donc
   `AccountMenu` n'affiche que l'email (masqué sur mobile) et une icône de

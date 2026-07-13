@@ -1,8 +1,10 @@
 "use client";
 
+import { AuthLayout } from "@/components/auth-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { KeyIllustration } from "@/components/illustrations/key";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -79,7 +81,7 @@ export default function ResetPasswordPage() {
 
   if (expired) {
     return (
-      <div className="flex min-h-dvh items-center justify-center px-6">
+      <AuthLayout illustration={KeyIllustration} caption="Un nouveau lien ne prend qu'une minute.">
         <div className="w-full max-w-sm text-center">
           <p className="text-sm text-muted-foreground">
             Ce lien de récupération est invalide ou a expiré.
@@ -91,20 +93,23 @@ export default function ResetPasswordPage() {
             Retour à la connexion
           </a>
         </div>
-      </div>
+      </AuthLayout>
     );
   }
 
   if (!ready) {
     return (
-      <div className="flex min-h-dvh items-center justify-center px-6">
+      <AuthLayout illustration={KeyIllustration} caption="Un instant, on vérifie votre lien.">
         <p className="text-sm text-muted-foreground">Vérification du lien…</p>
-      </div>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center px-6">
+    <AuthLayout
+      illustration={KeyIllustration}
+      caption="Choisissez un nouveau mot de passe pour retrouver l'accès à votre compte."
+    >
       <form onSubmit={handleSubmit} className="flex w-full max-w-sm flex-col gap-3">
         <h1 className="text-lg font-semibold text-foreground">Nouveau mot de passe</h1>
         <div className="flex flex-col gap-1.5">
@@ -112,6 +117,7 @@ export default function ResetPasswordPage() {
           <Input
             id="new-password"
             type="password"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             minLength={6}
@@ -123,6 +129,7 @@ export default function ResetPasswordPage() {
           <Input
             id="confirm-password"
             type="password"
+            autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             minLength={6}
@@ -138,6 +145,6 @@ export default function ResetPasswordPage() {
           </p>
         )}
       </form>
-    </div>
+    </AuthLayout>
   );
 }
