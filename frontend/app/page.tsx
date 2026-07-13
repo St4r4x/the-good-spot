@@ -1,52 +1,23 @@
-"use client";
-
 import { buttonVariants } from "@/components/ui/button";
+import { Reveal } from "@/components/landing-reveal";
 import { cn } from "@/lib/utils";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
 
-/**
- * Scroll-reveal hook: flips `data-visible="true"` on an element the first
- * time it enters the viewport, then stops observing. Pure Web API, no
- * dependency — CSS (see className usage below) does the actual animating
- * and is itself neutralized under `prefers-reduced-motion: reduce`.
- */
-function useReveal<T extends HTMLElement>() {
-  const ref = useRef<T>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      el.dataset.visible = "true";
-      return;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          el.dataset.visible = "true";
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.15 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  return ref;
-}
-
-const revealClasses =
-  "opacity-0 translate-y-8 transition-all duration-700 ease-out data-[visible=true]:opacity-100 data-[visible=true]:translate-y-0 motion-reduce:opacity-100 motion-reduce:translate-y-0 motion-reduce:transition-none";
+export const metadata: Metadata = {
+  title: "The Good Spot — trouvez où vivre à mi-chemin",
+  description:
+    "Deux trajets différents, une seule adresse qui convient aux deux — calculée sur de vrais temps de trajet, pas à vol d'oiseau.",
+  openGraph: {
+    title: "The Good Spot — trouvez où vivre à mi-chemin",
+    description:
+      "Deux trajets différents, une seule adresse qui convient aux deux — calculée sur de vrais temps de trajet.",
+    images: ["/app-preview.webp"],
+  },
+};
 
 export default function LandingPage() {
-  const heroRef = useReveal<HTMLDivElement>();
-  const shotRef = useReveal<HTMLDivElement>();
-  const recitRef = useReveal<HTMLDivElement>();
-  const ctaRef = useReveal<HTMLDivElement>();
-
   return (
     <div className="min-h-dvh overflow-x-hidden bg-[#0b1220] text-[#f4f2ea]">
       {/* Ambient backdrop: layered radial glow, no imagery, pure CSS. */}
@@ -80,7 +51,7 @@ export default function LandingPage() {
       <main className="relative z-10 mx-auto max-w-6xl px-6 md:px-10">
         {/* HERO — asymmetric: oversized diagonal headline left, tilted screenshot bleeding off the right edge. */}
         <section className="relative grid gap-12 pt-10 pb-24 md:grid-cols-[1.15fr_1fr] md:gap-6 md:pt-16 md:pb-36">
-          <div ref={heroRef} data-visible="false" className={cn(revealClasses, "relative md:-rotate-1")}>
+          <Reveal className="relative md:-rotate-1">
             <span className="mb-5 inline-block rounded-full border border-[#ff8a5c]/40 bg-[#ff8a5c]/10 px-3 py-1 text-xs font-medium tracking-wide text-[#ffb08a] uppercase">
               Deux trajets, une seule adresse
             </span>
@@ -110,13 +81,9 @@ export default function LandingPage() {
                 →
               </span>
             </Link>
-          </div>
+          </Reveal>
 
-          <div
-            ref={shotRef}
-            data-visible="false"
-            className={cn(revealClasses, "delay-150 md:mt-10")}
-          >
+          <Reveal className="delay-150 md:mt-10">
             <div className="group relative mx-auto max-w-md md:mx-0 md:ml-auto md:mr-[-2.5rem] md:max-w-none md:translate-x-4">
               <div
                 aria-hidden
@@ -133,15 +100,11 @@ export default function LandingPage() {
                 />
               </div>
             </div>
-          </div>
+          </Reveal>
         </section>
 
         {/* RÉCIT — narrative block, offset from the grid, large pull-quote scale. */}
-        <section
-          ref={recitRef}
-          data-visible="false"
-          className={cn(revealClasses, "border-t border-white/10 py-20 md:py-28")}
-        >
+        <Reveal as="section" className="border-t border-white/10 py-20 md:py-28">
           <div className="md:ml-[8%] md:max-w-3xl">
             <p className="text-2xl leading-snug font-medium text-balance text-[#f4f2ea] md:text-4xl">
               Léa travaille dans le 9<sup>e</sup>, Karim dans le 15<sup>e</sup>.{" "}
@@ -156,16 +119,12 @@ export default function LandingPage() {
           <p className="mt-12 text-sm tracking-wide text-[#8b93a8] md:ml-[8%]">
             Vrais temps de trajet · Compte gratuit · Synchronisé partout
           </p>
-        </section>
+        </Reveal>
 
         {/* CTA FINAL */}
-        <section
-          ref={ctaRef}
-          data-visible="false"
-          className={cn(
-            revealClasses,
-            "relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#132036] via-[#0b1220] to-[#1a1030] px-8 py-16 text-center md:py-24"
-          )}
+        <Reveal
+          as="section"
+          className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#132036] via-[#0b1220] to-[#1a1030] px-8 py-16 text-center md:py-24"
         >
           <div
             aria-hidden
@@ -183,7 +142,7 @@ export default function LandingPage() {
           >
             Trouver notre zone commune
           </Link>
-        </section>
+        </Reveal>
       </main>
 
       <footer className="relative z-10 border-t border-white/10">
