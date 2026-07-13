@@ -42,7 +42,7 @@ export default function LandingPage() {
               d&apos;oiseau.
             </p>
             <Link href="/app" className={cn(buttonVariants({ size: "lg" }), "mt-8")}>
-              Ouvrir la carte
+              Trouvez votre lieu
             </Link>
           </div>
           <div className="overflow-hidden rounded-xl border border-border">
