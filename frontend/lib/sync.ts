@@ -1,5 +1,5 @@
 import type { HousingMarker } from "./housing";
-import type { TravelMode } from "./api";
+import type { PoiGroup, TravelMode } from "./api";
 
 export type SavedWorkplaces = {
   address1: string;
@@ -14,6 +14,7 @@ export type WorkplacesRow = {
   address2: string;
   minutes: number;
   modes: string[];
+  default_poi_groups: string[];
   updated_at: string;
 };
 
@@ -46,6 +47,10 @@ export function savedToWorkplacesUpsert(saved: SavedWorkplaces, userId: string) 
     minutes: Number(saved.minutes),
     modes: saved.modes,
   };
+}
+
+export function workplacesRowToDefaultPoiGroups(row: WorkplacesRow): PoiGroup[] {
+  return row.default_poi_groups as PoiGroup[];
 }
 
 export function housingSearchRowToMarker(row: HousingSearchRow): HousingMarker {
