@@ -20,7 +20,7 @@ import type { ElementType, HTMLAttributes } from "react";
  * exporting `metadata`.
  */
 export const revealClasses =
-  "transition-all duration-700 ease-out data-[armed=true]:data-[visible=false]:opacity-0 data-[armed=true]:data-[visible=false]:translate-y-8 motion-reduce:transition-none";
+  "data-[armed=true]:transition-all data-[armed=true]:duration-700 data-[armed=true]:ease-out data-[armed=true]:data-[visible=false]:opacity-0 data-[armed=true]:data-[visible=false]:translate-y-8 motion-reduce:transition-none";
 
 export function Reveal({
   as: As = "div",
@@ -36,8 +36,16 @@ export function Reveal({
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       return;
     }
-    // Arm the hidden state only once JS has actually mounted, then reveal
-    // on scroll — content stays visible the whole time if this never runs.
+    // Elements already in the viewport at mount (e.g. the Hero) must arm
+    // straight into the visible state — arming them into "hidden" first
+    // would fade/slide them out and back in before the async
+    // IntersectionObserver callback ever fires. Compute the initial state
+    // synchronously so there's no such frame.
+    const rect = el.getBoundingClientRect();
+    const alreadyVisible = rect.top < window.innerHeight && rect.bottom > 0;
+    if (alreadyVisible) {
+      el.dataset.visible = "true";
+    }
     el.dataset.armed = "true";
     const observer = new IntersectionObserver(
       ([entry]) => {
