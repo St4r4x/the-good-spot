@@ -25,20 +25,37 @@ lui-même se connecte à une base.
 1. Découper la `bbox` demandée en tuiles d'une grille fixe (`bbox_to_tiles`).
 2. Pour chaque tuile : lire le cache Postgres (`poi_cache_tiles`). Si absente
    ou plus vieille que 30 jours → cache miss.
-3. Pour les tuiles en miss uniquement : fetcher **en parallèle** Geoapify et
-   Overpass sur l'étendue de la tuile (pas de la bbox demandée — pour que le
-   cache soit réutilisable par d'autres requêtes qui couvrent partiellement
-   la même tuile), fusionner+dédupliquer les deux résultats, puis upsert la
+3. S'il y a au moins une tuile en miss : fetcher **un seul appel Geoapify et
+   un seul appel Overpass** (en parallèle entre eux), sur le rectangle
+   englobant de **toutes** les tuiles en miss — pas un appel par tuile.
+   Fusionner+dédupliquer les deux résultats, répartir chaque POI dans sa
+   tuile (`bbox_to_tiles` sur ses propres coordonnées), puis upsert chaque
    tuile en cache.
+
+   **Pourquoi un seul appel groupé et pas un appel par tuile** : une bbox
+   d'isochrone typique (mode par défaut de l'app : transports en commun,
+   jusqu'à 60 min — `MAX_MINUTES` dans `main.py`) peut couvrir plusieurs
+   dizaines de km de large selon la densité du réseau de transport de la
+   ville, soit facilement 100+ tuiles de 1km. Un appel Geoapify par tuile
+   manquante
+   consommerait potentiellement 100+ des 200 crédits/jour en une seule
+   requête `/pois` sur une carte jamais visitée — pire que l'existant (1
+   crédit par appel, quelle que soit la taille de la bbox) et à l'opposé de
+   l'objectif de ce design. Ça enverrait aussi une rafale de requêtes au
+   service public Overpass (vérifié en live à l'écriture de cette spec :
+   `overpass-api.de` renvoie "server too busy" après quelques requêtes
+   rapprochées). Le coût réel devient donc **au pire égal à l'existant** (1
+   crédit Geoapify par requête `/pois` ayant au moins une tuile manquante),
+   avec en plus le bénéfice du cache sur les vues répétées/voisines.
 4. Agréger les POI de toutes les tuiles couvertes (cache + fraîchement
    fetchées), filtrer par `bbox` exacte (les tuiles dépassent légèrement la
    bbox demandée) et par `groups` demandés.
 5. Retourner `{"pois": [{lat, lon, name, group}]}` — **contrat inchangé**,
    aucune modification du frontend n'est nécessaire.
 
-Le rate limit Geoapify n'est décompté que sur cache miss réel (voir section
-dédiée) ; Overpass n'a pas de quota chez nous, aucun compteur ne lui est
-associé.
+Le rate limit Geoapify n'est décompté que sur cache miss réel — au plus 1
+crédit par requête `/pois`, jamais un par tuile (voir section dédiée) ;
+Overpass n'a pas de quota chez nous, aucun compteur ne lui est associé.
 
 ## Grille de tuiles et cache (`backend/poi_cache.py`)
 
@@ -99,8 +116,9 @@ associé.
   | Culture & loisirs | `tourism=museum`, `amenity=cinema`, `tourism=attraction` |
 
 - Si Overpass timeout ou renvoie une erreur (HTTP ou JSON invalide) : on
-  logue un warning et on continue avec le résultat Geoapify seul pour cette
-  tuile — une source indisponible ne fait pas échouer `/pois`.
+  logue un warning et on continue avec le résultat Geoapify seul pour ce
+  batch de tuiles en miss — une source indisponible ne fait pas échouer
+  `/pois`.
 
 ## Déduplication (`backend/poi_dedup.py`)
 
@@ -117,10 +135,10 @@ Ne compare jamais deux POI de groupes différents.
 3. Sinon : les deux POI sont conservés (couverture élargie, c'est l'objectif
    de la fusion des sources).
 
-Cette déduplication ne s'applique qu'à l'intérieur d'une tuile, au moment de
-la fusion Geoapify+Overpass avant écriture en cache — pas entre tuiles
-voisines (une tuile de 1km ne coupe un POI en deux copies qu'à sa frontière
-exacte, cas jugé négligeable, non traité dans cette version).
+Cette déduplication s'applique sur l'ensemble du batch (tous les POI reçus
+des deux sources pour le rectangle englobant des tuiles en miss), avant la
+répartition par tuile pour le cache — donc naturellement aussi entre POI de
+tuiles voisines, pas seulement à l'intérieur d'une même tuile.
 
 ## Rate limit Geoapify
 
@@ -128,10 +146,10 @@ exacte, cas jugé négligeable, non traité dans cette version).
   (`/zone` et `/housing` gardent le décorateur existant, inchangés).
 - Appel manuel dans le handler `/pois` :
   `limiter.limiter.hit(limits.parse(RATE_LIMIT), rate_limit_key(request),
-  "geoapify", cost=n)` où `n` = nombre de tuiles ayant déclenché un vrai
-  appel Geoapify pendant cette requête (0 si toutes les tuiles venaient du
-  cache → aucune consommation de quota). Si `n == 0`, `hit` n'est pas appelé
-  du tout.
+  "geoapify")` (coût par défaut 1), appelé **une seule fois par requête**,
+  uniquement s'il y a eu au moins une tuile en miss ayant déclenché l'appel
+  Geoapify groupé décrit ci-dessus. Si toutes les tuiles venaient du cache,
+  `hit` n'est pas appelé du tout — 0 consommation de quota.
 - Si le quota est dépassé (`hit` renvoie `False`) : `/pois` renvoie 429,
   même comportement observable qu'avant pour l'utilisateur qui déclenche
   réellement des appels Geoapify.
