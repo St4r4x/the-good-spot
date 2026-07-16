@@ -14,7 +14,7 @@ async def create_pool(database_url: str | None) -> asyncpg.Pool | None:
         return None
     try:
         return await asyncpg.create_pool(database_url)
-    except OSError:
+    except (OSError, asyncpg.PostgresError):
         _logger.warning("Could not connect to DATABASE_URL, running without POI cache")
         return None
 
@@ -42,7 +42,7 @@ async def get_cached_tiles(
                 tile_xs,
                 tile_ys,
             )
-    except OSError:
+    except (OSError, asyncpg.PostgresError):
         _logger.warning("POI cache read failed, falling back to live fetch")
         return result
 
@@ -81,5 +81,5 @@ async def upsert_tiles(
                 """,
                 args,
             )
-    except OSError:
+    except (OSError, asyncpg.PostgresError):
         _logger.warning("POI cache write failed, continuing without persisting")
