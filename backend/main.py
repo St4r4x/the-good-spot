@@ -1,5 +1,7 @@
 import asyncio
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 import httpx
 import jwt
@@ -8,6 +10,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from limits import parse as parse_rate_limit
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from slowapi.wrappers import Limit
 
 from overpass import fetch_overpass_pois
 from poi_cache import create_pool, get_cached_tiles, upsert_tiles
@@ -101,16 +104,34 @@ def rate_limit_key(request: Request) -> str:
     return f"user:{get_current_user_id(request)}"
 
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+    global _db_pool
+    _db_pool = await create_pool(DATABASE_URL)
+    yield
+
+
 limiter = Limiter(key_func=rate_limit_key)
-app = FastAPI()
+app = FastAPI(lifespan=_lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-
-@app.on_event("startup")
-async def _init_db_pool() -> None:
-    global _db_pool
-    _db_pool = await create_pool(DATABASE_URL)
+# Mirrors the Limit slowapi builds internally for
+# @limiter.shared_limit(RATE_LIMIT, scope="geoapify") (used on /zone and
+# /housing below) so a manual hit() in /pois can raise the identical
+# RateLimitExceeded — same {"error": ...} body and X-RateLimit-* headers —
+# instead of a bare HTTPException with a different shape.
+_geoapify_limit = Limit(
+    parse_rate_limit(RATE_LIMIT),
+    rate_limit_key,
+    "geoapify",
+    False,
+    None,
+    None,
+    None,
+    1,
+    True,
+)
 
 
 async def geocode(client: httpx.AsyncClient, address: str) -> dict:
@@ -298,13 +319,15 @@ async def pois(
         # limiter.limiter.hit() only increments the counter and reports
         # whether it stayed within budget — unlike the @limiter.shared_limit
         # decorator used on /zone and /housing, nothing here raises on our
-        # behalf, so we must check the result ourselves (mirrors slowapi's
-        # own Limiter.__evaluate_limits, which does the same check-then-raise).
-        within_limit = limiter.limiter.hit(
-            parse_rate_limit(RATE_LIMIT), rate_limit_key(request), "geoapify"
-        )
-        if not within_limit:
-            raise HTTPException(429, "Quota Geoapify dépassé.")
+        # behalf, so we check the result and raise ourselves, mirroring
+        # slowapi's own Limiter.__evaluate_limits (same check-then-raise,
+        # same request.state.view_rate_limit bookkeeping for header
+        # injection) so a quota trip here looks identical to one on /zone
+        # or /housing.
+        limit_key = rate_limit_key(request)
+        request.state.view_rate_limit = (_geoapify_limit.limit, [limit_key, "geoapify"])
+        if not limiter.limiter.hit(_geoapify_limit.limit, limit_key, "geoapify"):
+            raise RateLimitExceeded(_geoapify_limit)
 
         geoapify_pois = [
             poi
@@ -323,7 +346,15 @@ async def pois(
                 pois_by_tile[tile].append(poi)
         await upsert_tiles(_db_pool, pois_by_tile)
 
-        all_pois.extend(fresh_pois)
+        # Only the POIs actually bucketed into a missing tile belong in the
+        # response here — fresh_pois itself is drawn from fetch_bbox, which
+        # is the bounding rectangle of all missing tiles and can therefore
+        # re-cover already-cached tiles too (when misses are non-contiguous).
+        # Extending with fresh_pois directly would double-count any POI that
+        # falls inside one of those already-cached tiles (once from `cached`,
+        # once here). pois_by_tile has already filtered to just the missing
+        # tiles, so reuse it instead of recomputing anything.
+        all_pois.extend(poi for tile_pois in pois_by_tile.values() for poi in tile_pois)
 
     bbox_lon1, bbox_lat1, bbox_lon2, bbox_lat2 = (
         float(p) for p in validated_bbox.split(",")

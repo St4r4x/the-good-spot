@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 import httpx
 import pytest
 import respx
@@ -302,6 +304,67 @@ def test_pois_merges_geoapify_and_overpass_without_duplicates(
 
 
 @respx.mock
+def test_pois_partial_cache_hit_does_not_duplicate_pois_from_cached_tiles(
+    client, auth_headers, fake_pool
+) -> None:
+    # Requested bbox "2.35,48.85,2.38,48.86" splits into 3 tiles along lon:
+    # (235, 4885), (236, 4885), (237, 4885). Pre-cache only the middle one —
+    # missing_tiles is then the two non-contiguous outer tiles, so
+    # tiles_bbox(missing_tiles) re-covers the middle (already-cached) tile's
+    # area too (its bounding rect spans all three). Geoapify/Overpass query
+    # that rect and legitimately return the POI that physically sits in the
+    # cached tile — it must not be added to the response a second time.
+    fake_pool.rows[(236, 4885)] = {
+        "pois": [
+            {"lat": 48.855, "lon": 2.365, "name": "Café Déjà Vu", "group": "catering"}
+        ],
+        "fetched_at": datetime.now(timezone.utc),
+    }
+
+    respx.get(PLACES_URL).mock(return_value=httpx.Response(200, json={"features": []}))
+    respx.post(OVERPASS_URL).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "elements": [
+                    {
+                        # Falls inside the already-cached middle tile — the
+                        # bug re-added this to the response even though it
+                        # isn't a real miss.
+                        "type": "node",
+                        "id": 1,
+                        "lat": 48.855,
+                        "lon": 2.365,
+                        "tags": {"amenity": "cafe", "name": "Café Déjà Vu"},
+                    },
+                    {
+                        # Falls inside a genuinely missing tile (237) — must
+                        # still show up exactly once.
+                        "type": "node",
+                        "id": 2,
+                        "lat": 48.855,
+                        "lon": 2.375,
+                        "tags": {"amenity": "cafe", "name": "Truly Fresh Café"},
+                    },
+                ]
+            },
+        )
+    )
+
+    resp = client.get(
+        "/pois",
+        params={"bbox": "2.35,48.85,2.38,48.86", "groups": "catering"},
+        headers=auth_headers(),
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    names = [poi["name"] for poi in body["pois"]]
+    assert names.count("Café Déjà Vu") == 1
+    assert names.count("Truly Fresh Café") == 1
+    assert len(body["pois"]) == 2
+
+
+@respx.mock
 def test_pois_quota_only_charged_on_real_cache_miss(
     client, auth_headers, fake_pool
 ) -> None:
@@ -337,6 +400,10 @@ def test_pois_quota_only_charged_on_real_cache_miss(
         headers=headers,
     )
     assert resp.status_code == 429
+    # Same error contract as /zone and /housing's shared-limit decorator
+    # (see test_rate_limit_is_shared_across_endpoints), not a bare
+    # HTTPException with a different body shape.
+    assert resp.json()["error"].startswith("Rate limit exceeded")
 
 
 @respx.mock
