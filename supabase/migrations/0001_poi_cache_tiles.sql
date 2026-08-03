@@ -1,4 +1,4 @@
-create table poi_cache_tiles (
+create table if not exists poi_cache_tiles (
     tile_x integer not null,
     tile_y integer not null,
     pois jsonb not null,

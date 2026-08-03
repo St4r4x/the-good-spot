@@ -29,7 +29,10 @@ def test_dedupe_keeps_single_poi_untouched() -> None:
 
 
 def test_dedupe_matches_by_identical_osm_id() -> None:
-    geoapify_poi = _poi(source="geoapify", osm_id=603506496, osm_type="node")
+    # Geoapify's real payload shape uses the single-letter osm_type ("n"),
+    # Overpass's real payload shape uses the full word ("node") — same
+    # real-world OSM element, different format per source.
+    geoapify_poi = _poi(source="geoapify", osm_id=603506496, osm_type="n")
     overpass_poi = _poi(
         source="overpass",
         osm_id=603506496,
@@ -39,6 +42,33 @@ def test_dedupe_matches_by_identical_osm_id() -> None:
     result = dedupe_pois([geoapify_poi, overpass_poi])
     assert len(result) == 1
     assert result[0]["source"] == "geoapify"
+
+
+def test_dedupe_matches_by_osm_id_when_osm_type_already_matches() -> None:
+    geoapify_poi = _poi(source="geoapify", osm_id=603506496, osm_type="w")
+    overpass_poi = _poi(
+        source="overpass",
+        osm_id=603506496,
+        osm_type="way",
+        name="Pharmacie du Village",
+    )
+    result = dedupe_pois([geoapify_poi, overpass_poi])
+    assert len(result) == 1
+    assert result[0]["source"] == "geoapify"
+
+
+def test_dedupe_by_osm_id_does_not_crash_when_osm_type_missing_on_one_side() -> None:
+    geoapify_poi = _poi(source="geoapify", osm_id=603506496, osm_type=None)
+    overpass_poi = _poi(
+        source="overpass",
+        osm_id=603506496,
+        osm_type="node",
+        name="Pharmacie du Village",
+    )
+    result = dedupe_pois([geoapify_poi, overpass_poi])
+    # osm_id matches but osm_type can't be confirmed on the Geoapify side —
+    # treated as not-a-match (no crash), not as a confirmed duplicate.
+    assert len(result) == 2
 
 
 def test_dedupe_matches_by_distance_and_similar_name_when_osm_id_missing() -> None:

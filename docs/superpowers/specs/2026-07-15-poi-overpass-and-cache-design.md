@@ -201,3 +201,16 @@ uniquement, jamais exposée au frontend).
 - Migration des tables Supabase existantes (`workplaces`, `housing_search`)
   vers le nouveau dossier `supabase/migrations/` — seule la nouvelle table
   `poi_cache_tiles` y est versionnée dans cette itération.
+- Verrouillage concurrent sur une tuile en miss : la séquence
+  détection-du-miss → appel Geoapify → upsert en cache n'est pas protégée
+  par un verrou. Deux requêtes `/pois` concurrentes sur des bbox qui se
+  recoupent peuvent toutes les deux voir la même tuile comme absente et
+  déclencher chacune un appel Geoapify réel, consommant 2 crédits de quota
+  pour une tuile que le design prévoyait de ne payer qu'une fois. Ce n'est
+  pas un bug de correction (l'upsert `ON CONFLICT DO UPDATE` ne crashe pas
+  et ne corrompt rien), juste une perte d'efficacité quota sous charge
+  concurrente. Accepté tel quel pour l'instant : le trafic attendu est
+  faible et le quota (200/jour) a de la marge ; un vrai correctif
+  nécessiterait un `pg_advisory_lock` (pour être valable à travers
+  plusieurs workers), disproportionné pour ce projet personnel. À revisiter
+  si ça devient un problème réel.

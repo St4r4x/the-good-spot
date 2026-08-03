@@ -46,9 +46,11 @@ def _build_query(bbox: str) -> str:
 
 
 def _group_for_tags(tags: dict[str, str]) -> str | None:
-    for key, value in tags.items():
-        group = _TAG_TO_GROUP.get((key, value)) or _TAG_TO_GROUP.get((key, ""))
-        if group:
+    # Iterate the canonical OVERPASS_GROUPS order (via _TAG_TO_GROUP, which
+    # preserves it), not tags.items(), so an element matching two groups at
+    # once resolves deterministically regardless of JSON/dict key order.
+    for (key, value), group in _TAG_TO_GROUP.items():
+        if tags.get(key) == value or (value == "" and key in tags):
             return group
     return None
 

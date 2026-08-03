@@ -258,7 +258,7 @@ def test_pois_merges_geoapify_and_overpass_without_duplicates(
                             "name": "Pharmacie du Village",
                             "categories": ["healthcare", "healthcare.pharmacy"],
                             "datasource": {
-                                "raw": {"osm_id": 603506496, "osm_type": "node"}
+                                "raw": {"osm_id": 603506496, "osm_type": "n"}
                             },
                         },
                         "geometry": {"coordinates": [2.3538958, 48.8591061]},
