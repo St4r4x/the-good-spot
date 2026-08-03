@@ -4,8 +4,13 @@ TILE_SIZE_DEG = 0.01
 
 
 def tile_for_point(lat: float, lon: float) -> tuple[int, int]:
-    tile_x = math.floor(lon / TILE_SIZE_DEG)
-    tile_y = math.floor(lat / TILE_SIZE_DEG)
+    # round() before floor(): 0.01 has no exact binary representation, so a
+    # grid-aligned coordinate (e.g. 2.3) can divide to 229.99999999999997
+    # instead of 230.0, sending floor() one tile too far. 6 decimal places
+    # is far below real-world lat/lon precision, so this can't mask a
+    # genuine non-boundary case.
+    tile_x = math.floor(round(lon / TILE_SIZE_DEG, 6))
+    tile_y = math.floor(round(lat / TILE_SIZE_DEG, 6))
     return tile_x, tile_y
 
 
@@ -18,10 +23,12 @@ def bbox_to_tiles(bbox: str) -> list[tuple[int, int]]:
     # tile touched by max_lon is therefore ceil(max_lon / TILE_SIZE_DEG) - 1,
     # not ceil(...) itself — ceil() alone would add a phantom extra
     # row/column whenever max_lon isn't exactly on a tile boundary.
-    x_start = math.floor(min_lon / TILE_SIZE_DEG)
-    x_end = max(math.ceil(max_lon / TILE_SIZE_DEG) - 1, x_start)
-    y_start = math.floor(min_lat / TILE_SIZE_DEG)
-    y_end = max(math.ceil(max_lat / TILE_SIZE_DEG) - 1, y_start)
+    # round(..., 6) before floor/ceil guards against the same float-precision
+    # off-by-one as tile_for_point above (see comment there).
+    x_start = math.floor(round(min_lon / TILE_SIZE_DEG, 6))
+    x_end = max(math.ceil(round(max_lon / TILE_SIZE_DEG, 6)) - 1, x_start)
+    y_start = math.floor(round(min_lat / TILE_SIZE_DEG, 6))
+    y_end = max(math.ceil(round(max_lat / TILE_SIZE_DEG, 6)) - 1, y_start)
 
     return [
         (x, y) for x in range(x_start, x_end + 1) for y in range(y_start, y_end + 1)

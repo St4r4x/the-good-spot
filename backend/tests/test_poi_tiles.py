@@ -25,6 +25,16 @@ def test_bbox_to_tiles_covers_exact_boundary() -> None:
     assert set(tiles) == {(200, 4800)}
 
 
+def test_bbox_to_tiles_grid_aligned_bbox_does_not_expand_by_one_tile() -> None:
+    # 2.3 / 0.01 == 229.99999999999997 in binary float, so an unguarded
+    # floor() would start the grid at tile 229 instead of 230.
+    tiles = bbox_to_tiles("2.3,48.8,2.4,48.9")
+    xs = sorted({t[0] for t in tiles})
+    ys = sorted({t[1] for t in tiles})
+    assert xs[0] == 230
+    assert ys[0] == 4880
+
+
 def test_tiles_bbox_covers_full_extent_of_given_tiles() -> None:
     result = tiles_bbox([(235, 4885), (236, 4886)])
     lon1, lat1, lon2, lat2 = (float(p) for p in result.split(","))
