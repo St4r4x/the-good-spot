@@ -3,6 +3,7 @@ import pytest
 import respx
 
 from main import GEOCODE_URL, ISOLINE_URL, PLACES_URL, ROUTING_URL, validate_mode
+from overpass import OVERPASS_URL
 
 GEOCODE_MATCH = {
     "features": [
@@ -189,7 +190,7 @@ def test_pois_rejects_invalid_bbox(client, auth_headers) -> None:
 
 @respx.mock
 def test_pois_happy_path(client, auth_headers) -> None:
-    respx.get(PLACES_URL).mock(
+    geoapify_route = respx.get(PLACES_URL).mock(
         return_value=httpx.Response(
             200,
             json={
@@ -208,6 +209,9 @@ def test_pois_happy_path(client, auth_headers) -> None:
                 ]
             },
         )
+    )
+    respx.post(OVERPASS_URL).mock(
+        return_value=httpx.Response(200, json={"elements": []})
     )
 
     resp = client.get(
@@ -231,11 +235,170 @@ def test_pois_happy_path(client, auth_headers) -> None:
         "group": "sport",
     }
 
-    request = respx.calls.last.request
+    request = geoapify_route.calls.last.request
     assert "education.school" in request.url.params["categories"]
     assert "sport.pitch" in request.url.params["categories"]
     assert request.url.params["filter"] == "rect:2.3,48.8,2.4,48.9"
     assert request.url.params["limit"] == "500"
+
+
+@respx.mock
+def test_pois_merges_geoapify_and_overpass_without_duplicates(
+    client, auth_headers, fake_pool
+) -> None:
+    respx.get(PLACES_URL).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "features": [
+                    {
+                        "properties": {
+                            "name": "Pharmacie du Village",
+                            "categories": ["healthcare", "healthcare.pharmacy"],
+                            "datasource": {
+                                "raw": {"osm_id": 603506496, "osm_type": "node"}
+                            },
+                        },
+                        "geometry": {"coordinates": [2.3538958, 48.8591061]},
+                    }
+                ]
+            },
+        )
+    )
+    respx.post(OVERPASS_URL).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "elements": [
+                    {
+                        "type": "node",
+                        "id": 603506496,
+                        "lat": 48.8591061,
+                        "lon": 2.3538958,
+                        "tags": {"amenity": "pharmacy", "name": "Pharmacie du Village"},
+                    },
+                    {
+                        "type": "node",
+                        "id": 999,
+                        "lat": 48.86,
+                        "lon": 2.36,
+                        "tags": {"amenity": "cafe", "name": "Café Overpass"},
+                    },
+                ]
+            },
+        )
+    )
+
+    resp = client.get(
+        "/pois",
+        params={"bbox": "2.35,48.85,2.37,48.87", "groups": "health,catering"},
+        headers=auth_headers(),
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    names = {poi["name"] for poi in body["pois"]}
+    assert names == {"Pharmacie du Village", "Café Overpass"}
+    assert len(body["pois"]) == 2  # the shared pharmacy is not duplicated
+
+
+@respx.mock
+def test_pois_quota_only_charged_on_real_cache_miss(
+    client, auth_headers, fake_pool
+) -> None:
+    respx.get(PLACES_URL).mock(return_value=httpx.Response(200, json={"features": []}))
+    respx.post(OVERPASS_URL).mock(
+        return_value=httpx.Response(200, json={"elements": []})
+    )
+    headers = auth_headers()
+
+    # A fixed bbox would be a cache hit from the 2nd call onward (even an
+    # empty result gets cached), so it would never actually charge quota
+    # past call 1 — vary the bbox per iteration to force a genuine cache
+    # miss (and a real Geoapify call) on all 200 iterations.
+    for i in range(200):
+        offset = i * 0.02
+        resp = client.get(
+            "/pois",
+            params={
+                "bbox": f"{2.35 + offset},{48.85 + offset},{2.37 + offset},{48.87 + offset}",
+                "groups": "health",
+            },
+            headers=headers,
+        )
+        assert resp.status_code == 200
+
+    # 201st call is also a fresh bbox (cache miss) and still hits Geoapify,
+    # proving quota is charged once per request-with-a-miss, not once per
+    # tile (a 100+-tile bbox would otherwise have exhausted the 200/day
+    # budget well before this point).
+    resp = client.get(
+        "/pois",
+        params={"bbox": "9.0,9.0,9.02,9.02", "groups": "health"},
+        headers=headers,
+    )
+    assert resp.status_code == 429
+
+
+@respx.mock
+def test_pois_second_call_on_same_bbox_does_not_hit_geoapify(
+    client, auth_headers, fake_pool
+) -> None:
+    geoapify_route = respx.get(PLACES_URL).mock(
+        return_value=httpx.Response(200, json={"features": []})
+    )
+    respx.post(OVERPASS_URL).mock(
+        return_value=httpx.Response(200, json={"elements": []})
+    )
+    headers = auth_headers()
+
+    client.get(
+        "/pois",
+        params={"bbox": "2.35,48.85,2.37,48.87", "groups": "health"},
+        headers=headers,
+    )
+    assert geoapify_route.call_count == 1
+
+    client.get(
+        "/pois",
+        params={"bbox": "2.35,48.85,2.37,48.87", "groups": "health"},
+        headers=headers,
+    )
+    assert geoapify_route.call_count == 1  # second call served entirely from cache
+
+
+@respx.mock
+def test_pois_falls_back_to_live_fetch_without_cache_pool(client, auth_headers) -> None:
+    # No fake_pool fixture used here: main._db_pool stays at its default
+    # (None, since DATABASE_URL is unset in the test environment).
+    respx.get(PLACES_URL).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "features": [
+                    {
+                        "properties": {
+                            "name": "École Jules Ferry",
+                            "categories": ["education.school"],
+                        },
+                        "geometry": {"coordinates": [2.35, 48.85]},
+                    }
+                ]
+            },
+        )
+    )
+    respx.post(OVERPASS_URL).mock(
+        return_value=httpx.Response(200, json={"elements": []})
+    )
+
+    resp = client.get(
+        "/pois",
+        params={"bbox": "2.3,48.8,2.4,48.9", "groups": "education"},
+        headers=auth_headers(),
+    )
+    assert resp.status_code == 200
+    assert resp.json()["pois"] == [
+        {"lat": 48.85, "lon": 2.35, "name": "École Jules Ferry", "group": "education"}
+    ]
 
 
 def test_get_current_user_id_returns_none_without_header(client) -> None:
@@ -296,6 +459,9 @@ def test_rate_limit_is_shared_across_endpoints(client, auth_headers) -> None:
         return_value=httpx.Response(200, json={"features": [{"type": "Feature"}]})
     )
     respx.get(PLACES_URL).mock(return_value=httpx.Response(200, json={"features": []}))
+    respx.post(OVERPASS_URL).mock(
+        return_value=httpx.Response(200, json={"elements": []})
+    )
     headers = auth_headers()
 
     for _ in range(150):
@@ -305,10 +471,14 @@ def test_rate_limit_is_shared_across_endpoints(client, auth_headers) -> None:
             headers=headers,
         )
         assert resp.status_code == 200
-    for _ in range(50):
+    for i in range(50):
+        offset = i * 0.02
         resp = client.get(
             "/pois",
-            params={"bbox": "2.3,48.8,2.4,48.9", "groups": "sport"},
+            params={
+                "bbox": f"{2.3 + offset},{48.8 + offset},{2.4 + offset},{48.9 + offset}",
+                "groups": "sport",
+            },
             headers=headers,
         )
         assert resp.status_code == 200
