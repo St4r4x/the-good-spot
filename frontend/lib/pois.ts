@@ -68,3 +68,24 @@ export function poisInZone(pois: Poi[], zone: PolygonFeature): Poi[] {
 export function poiLabel(poi: Poi): string {
   return poi.name ?? DEFAULT_NAMES[poi.group];
 }
+
+export type NearestPoi = { poi: Poi; distanceMeters: number };
+
+export function nearestPoi(
+  point: [number, number],
+  pois: Poi[],
+  group: PoiGroup
+): NearestPoi | null {
+  const candidates = pois.filter((p) => p.group === group);
+  if (candidates.length === 0) return null;
+  let nearest = candidates[0];
+  let nearestDistance = turf.distance(point, [nearest.lon, nearest.lat], { units: "meters" });
+  for (const candidate of candidates.slice(1)) {
+    const distance = turf.distance(point, [candidate.lon, candidate.lat], { units: "meters" });
+    if (distance < nearestDistance) {
+      nearest = candidate;
+      nearestDistance = distance;
+    }
+  }
+  return { poi: nearest, distanceMeters: Math.round(nearestDistance) };
+}
