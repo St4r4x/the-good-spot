@@ -26,6 +26,17 @@ test("login, compute a shared zone, and test a candidate housing address", async
   await page.getByRole("button", { name: "Se connecter" }).click();
   await expect(page).toHaveURL(/\/app$/);
 
+  // Don't rely on the test account's saved travel modes (WorkplaceForm
+  // hydrates `modes` from whatever Supabase has stored) — force
+  // "Transports"-only here so the test is self-sufficient.
+  const TRAVEL_MODE_NAMES = ["Transports", "Marche", "Vélo", "Voiture"];
+  for (const name of TRAVEL_MODE_NAMES) {
+    const button = page.getByRole("button", { name });
+    const isPressed = (await button.getAttribute("aria-pressed")) === "true";
+    const shouldBePressed = name === "Transports";
+    if (isPressed !== shouldBePressed) await button.click();
+  }
+
   await page.getByLabel("Lieu de travail 1").fill(ADDRESS_1);
   await page.getByLabel("Lieu de travail 2").fill(ADDRESS_2);
   await page.getByLabel("Temps de trajet max").fill("30");
@@ -37,7 +48,9 @@ test("login, compute a shared zone, and test a candidate housing address", async
   // wrapped with the click to avoid missing it, is what makes the later
   // "Dans la zone" assertion deterministic instead of a race.
   await Promise.all([
-    page.waitForResponse((resp) => resp.url().includes("/rest/v1/workplaces")),
+    page.waitForResponse(
+      (resp) => resp.url().includes("/rest/v1/workplaces") && resp.request().method() !== "GET"
+    ),
     page.getByRole("button", { name: "Calculer la zone" }).click(),
   ]);
 

@@ -99,9 +99,9 @@ zone commune → test d'un logement). Il tourne contre le frontend seul
 **Setup, une seule fois** :
 1. Créer un compte dans le projet Supabase du `.env.local` (signup normal
    via `/login` avec un email/mot de passe dédiés aux tests).
-2. Compléter l'onboarding une fois à la main avec ce compte, en ne
-   cochant **que** « Transports » comme moyen de transport (le test
-   suppose que ce mode est déjà sélectionné à l'ouverture de `/app`).
+2. Compléter l'onboarding une fois à la main avec ce compte (le moyen de
+   transport enregistré n'a pas d'importance : le test force lui-même
+   « Transports » avant de remplir les adresses).
 3. Créer `frontend/.env.test.local` :
    ```
    E2E_TEST_EMAIL=<email du compte de test>

@@ -1,4 +1,9 @@
+import { existsSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
+
+// Playwright doesn't auto-load .env files; load test credentials explicitly
+// before the config (and the spec files that read process.env) evaluate.
+if (existsSync(".env.test.local")) process.loadEnvFile(".env.test.local");
 
 export default defineConfig({
   testDir: "./e2e",
