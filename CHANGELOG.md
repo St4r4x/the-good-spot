@@ -5,6 +5,8 @@ versionnage [semver](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-04
+
 ### Added
 - Test e2e Playwright du parcours critique (login → zone commune → test
   d'un logement), `frontend/e2e/` — voir la section « Tests e2e » du
@@ -13,6 +15,11 @@ versionnage [semver](https://semver.org/lang/fr/).
   testé, affiché dans la liste et le popup carte — visible seulement si le
   filtre POI « Éducation » est actif ; aucune donnée persistée, aucun appel
   API supplémentaire.
+
+### Fixed
+- La carte ne se reconstruit plus entièrement au toggle d'un filtre POI —
+  seul le contenu des popups est patché, ce qui évite des re-renders
+  inutiles.
 
 ## [1.2.0] - 2026-08-04
 
