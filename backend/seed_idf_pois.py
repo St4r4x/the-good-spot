@@ -21,6 +21,19 @@ from poi_tiles import tile_for_point
 IDF_BBOX = "1.45,48.12,3.56,49.24"
 
 
+async def _fetch_with_retry(
+    client: httpx.AsyncClient, bbox: str, attempts: int = 3, delay: float = 5
+) -> list[dict]:
+    for attempt in range(1, attempts + 1):
+        pois = await fetch_overpass_pois(client, bbox)
+        if pois:
+            return pois
+        if attempt < attempts:
+            print(f"  (empty response, retrying in {delay}s, attempt {attempt}/{attempts})")
+            await asyncio.sleep(delay)
+    return []
+
+
 async def main() -> None:
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
@@ -37,7 +50,7 @@ async def main() -> None:
     async with httpx.AsyncClient() as client:
         for i, cell in enumerate(cells, start=1):
             print(f"[{i}/{len(cells)}] fetching {cell}...")
-            pois = await fetch_overpass_pois(client, cell)
+            pois = await _fetch_with_retry(client, cell)
 
             pois_by_tile: dict[tuple[int, int], list[dict]] = {}
             for poi in pois:
@@ -46,6 +59,9 @@ async def main() -> None:
 
             await upsert_tiles(pool, pois_by_tile)
             print(f"  -> {len(pois)} POIs across {len(pois_by_tile)} tiles")
+
+            if i < len(cells):
+                await asyncio.sleep(3)
 
     await pool.close()
     print("Done.")
