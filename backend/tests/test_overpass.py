@@ -26,13 +26,15 @@ OVERPASS_RESPONSE = {
 @pytest.mark.asyncio
 @respx.mock
 async def test_fetch_overpass_pois_maps_tags_to_groups() -> None:
-    respx.post(OVERPASS_URL).mock(
+    route = respx.post(OVERPASS_URL).mock(
         return_value=httpx.Response(200, json=OVERPASS_RESPONSE)
     )
     async with httpx.AsyncClient() as client:
         result = await fetch_overpass_pois(client, "2.30,48.80,2.40,48.90")
 
     assert len(result) == 2
+    assert "user-agent" in route.calls.last.request.headers
+    assert route.calls.last.request.headers["user-agent"] != ""
     pharmacy = next(p for p in result if p["osm_id"] == 603506496)
     assert pharmacy == {
         "lat": 48.8591061,
