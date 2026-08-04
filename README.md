@@ -39,7 +39,8 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Ouvrir `http://localhost:8080` — la page d'accueil présente le produit, l'app
+Ouvrir `http://localhost:3000` (ou le port défini via la variable d'env `PORT`)
+— la page d'accueil présente le produit, l'app
 carte est sur `/app` (redirige vers `/login` si aucun compte n'est connecté,
 puis vers `/onboarding` en 3 étapes tant que le profil n'est pas complet).
 
