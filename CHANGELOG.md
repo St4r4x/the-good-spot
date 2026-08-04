@@ -5,6 +5,30 @@ versionnage [semver](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-08-04
+
+### Added
+- Service Postgres local dans `docker-compose.yml` (dev uniquement), avec
+  la migration `poi_cache_tiles` appliquée automatiquement au premier
+  démarrage — le cache POI est actif par défaut en local.
+- `backend/seed_idf_pois.py` : script one-shot qui pré-remplit ce cache
+  avec les POI Overpass (OSM) de toute l'Île-de-France, pour développer
+  `/pois` sans dépendre du réseau ni du quota Geoapify. Hors Île-de-France,
+  comportement inchangé (fetch live). Le script réessaie jusqu'à 3 fois les
+  cellules vides et attend entre cellules pour réduire les défaillances du
+  taux limite Overpass partagé ; couverture partielle est attendue selon la
+  charge réelle — relancer plus tard remplit généralement plus de tuiles.
+
+### Fixed
+- `backend/Dockerfile` ne copiait que `main.py`, pas les autres modules
+  (`overpass.py`, `poi_cache.py`, `poi_dedup.py`, `poi_tiles.py`) que
+  `main.py` importe — le backend crashait au démarrage dans Docker.
+- `backend/overpass.py` ne fixait jamais d'en-tête `User-Agent`, causant
+  des rejets HTTP 406 de overpass-api.de sur chaque requête, silencieusement
+  ignorés par la gestion d'erreur existante — tout appel Overpass (seed
+  script et `/pois` live) retournait zéro résultat. Corrigé en fixant un
+  User-Agent conforme à la politique d'utilisation d'Overpass.
+
 ## [1.3.0] - 2026-08-04
 
 ### Added
