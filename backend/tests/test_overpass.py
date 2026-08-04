@@ -33,8 +33,7 @@ async def test_fetch_overpass_pois_maps_tags_to_groups() -> None:
         result = await fetch_overpass_pois(client, "2.30,48.80,2.40,48.90")
 
     assert len(result) == 2
-    assert "user-agent" in route.calls.last.request.headers
-    assert route.calls.last.request.headers["user-agent"] != ""
+    assert route.calls.last.request.headers["user-agent"] == "the-good-spot-dev (github.com/St4r4x/the-good-spot)"
     pharmacy = next(p for p in result if p["osm_id"] == 603506496)
     assert pharmacy == {
         "lat": 48.8591061,
