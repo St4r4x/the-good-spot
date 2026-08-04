@@ -5,6 +5,18 @@ versionnage [semver](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-08-04
+
+### Security
+- Bump transitive frontend dependencies (`brace-expansion`, `fast-uri`, `hono`,
+  `ip-address`, `undici`) via `npm audit fix` — resolves 7 of the 10
+  vulnerabilities (3 moderate, 4 high) flagged by CI's
+  `npm audit --audit-level=high`. No declared dependency version changed
+  (`package.json` untouched, only `package-lock.json`). The 3 remaining
+  high-severity advisories (`next`, `postcss`, `sharp`) require
+  `npm audit fix --force`, which would install a Next.js version outside
+  the declared range — deferred as a separate decision.
+
 ## [1.1.1] - 2026-07-13
 
 ### Changed
