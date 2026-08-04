@@ -24,7 +24,7 @@ import {
 import type { HousingMarker, WorkResult } from "@/components/map/isochrone-map";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const IsochroneMap = dynamic(
   () => import("@/components/map/isochrone-map").then((m) => m.IsochroneMap),
@@ -219,8 +219,12 @@ export function IsochroneApp() {
     }
   }
 
-  const nearestSchools = housingMarkers.map((h) =>
-    poiGroups.includes("education") ? nearestPoi([h.lon, h.lat], pois, "education") : null
+  const nearestSchools = useMemo(
+    () =>
+      housingMarkers.map((h) =>
+        poiGroups.includes("education") ? nearestPoi([h.lon, h.lat], pois, "education") : null
+      ),
+    [housingMarkers, pois, poiGroups]
   );
 
   return (
