@@ -9,13 +9,12 @@ versionnage [semver](https://semver.org/lang/fr/).
 
 ### Security
 - Bump transitive frontend dependencies (`brace-expansion`, `fast-uri`, `hono`,
-  `ip-address`, `undici`) via `npm audit fix` — resolves 7 of the 10
-  vulnerabilities (3 moderate, 4 high) flagged by CI's
-  `npm audit --audit-level=high`. No declared dependency version changed
-  (`package.json` untouched, only `package-lock.json`). The 3 remaining
-  high-severity advisories (`next`, `postcss`, `sharp`) require
-  `npm audit fix --force`, which would install a Next.js version outside
-  the declared range — deferred as a separate decision.
+  `ip-address`, `undici`) via `npm audit fix`, then bump `next` 16.2.10 →
+  16.3.0 (bundled `postcss`/`sharp` follow) via `npm audit fix --force` —
+  resolves all 10 vulnerabilities (3 moderate, 7 high) flagged by CI's
+  `npm audit --audit-level=high`, down to 0. `next` is the only declared
+  dependency version that changed; `tsc --noEmit`, lint, the Vitest suite,
+  and `next build` all pass unchanged on 16.3.0.
 
 ## [1.1.1] - 2026-07-13
 
