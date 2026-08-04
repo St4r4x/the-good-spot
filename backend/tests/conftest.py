@@ -53,3 +53,52 @@ def auth_headers():
         return {"Authorization": f"Bearer {token}"}
 
     return _make
+
+
+class _FakeCacheRecord(dict):
+    pass
+
+
+class _FakeCachePool:
+    def __init__(self) -> None:
+        self.rows: dict[tuple[int, int], dict] = {}
+
+    def acquire(self):
+        return _FakeCacheConnection(self)
+
+
+class _FakeCacheConnection:
+    def __init__(self, pool: _FakeCachePool) -> None:
+        self._pool = pool
+
+    async def __aenter__(self) -> "_FakeCacheConnection":
+        return self
+
+    async def __aexit__(self, *exc: object) -> None:
+        return None
+
+    async def fetch(self, query: str, tile_xs: list[int], tile_ys: list[int]):
+        records = []
+        for x, y in zip(tile_xs, tile_ys):
+            row = self._pool.rows.get((x, y))
+            if row is not None:
+                records.append(
+                    _FakeCacheRecord(
+                        tile_x=x,
+                        tile_y=y,
+                        pois=row["pois"],
+                        fetched_at=row["fetched_at"],
+                    )
+                )
+        return records
+
+    async def executemany(self, query: str, args: list[tuple]) -> None:
+        for tile_x, tile_y, pois, fetched_at in args:
+            self._pool.rows[(tile_x, tile_y)] = {"pois": pois, "fetched_at": fetched_at}
+
+
+@pytest.fixture
+def fake_pool(monkeypatch: pytest.MonkeyPatch) -> _FakeCachePool:
+    pool = _FakeCachePool()
+    monkeypatch.setattr(main, "_db_pool", pool)
+    return pool

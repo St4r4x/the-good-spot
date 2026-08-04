@@ -48,6 +48,14 @@ Un compte Supabase est nécessaire pour utiliser l'app : renseigner
 JWT via l'endpoint JWKS `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`), et
 créer `frontend/.env.local` avec :
 
+Pour activer le cache des points d'intérêt (recommandé, réduit fortement la
+consommation du quota Geoapify) : appliquer la migration
+`supabase/migrations/0001_poi_cache_tiles.sql` dans le SQL editor du projet
+Supabase, puis renseigner `DATABASE_URL` dans `.env` avec la connection
+string Postgres du pooler Supabase (Project Settings → Database →
+Connection string). Sans `DATABASE_URL`, `/pois` continue de fonctionner
+sans cache (comportement précédent).
+
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://wgfcywjykimvxkwpgdob.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_Kqhf3XYt3o0uQNFe52mojQ_4Ev4NOxu
@@ -61,8 +69,10 @@ Console).
 
 ```
 .
-├── backend/           FastAPI : /isochrone, /housing
+├── backend/           FastAPI : /zone, /housing, /pois (Geoapify + Overpass, cache Postgres)
 ├── frontend/           Next.js : formulaire + carte
+├── supabase/
+│   └── migrations/     migrations SQL versionnées (appliquées à la main via le SQL editor Supabase)
 ├── docker-compose.yml
 ├── PRODUCT.md          contexte produit (register, users, brand personality)
 ├── DESIGN.md           système de design (couleurs, typo, composants)
@@ -82,8 +92,11 @@ mettre à jour si le positionnement ou le style visuel changent.
   → géocode l'adresse candidate, retourne le temps de trajet réel (API
   Routing, même mode) vers chacun des deux points.
 - `GET /pois?bbox=lon1,lat1,lon2,lat2&groups=education,sport,commerce,health,parks,catering,public_transport,culture`
-  → retourne les points d'intérêt Geoapify dans le rectangle englobant,
-  groupés par catégorie (`name` peut être `null`).
+  → retourne les points d'intérêt dans le rectangle englobant, fusionnés
+  depuis Geoapify et Overpass (OpenStreetMap) et dédupliqués, groupés par
+  catégorie (`name` peut être `null`). Résultats mis en cache par tuile
+  géographique (~1km, 30 jours) si `DATABASE_URL` est configuré — le quota
+  Geoapify n'est décompté que lorsqu'au moins une tuile n'est pas en cache.
 - `/zone`, `/housing`, `/pois` exigent un JWT Supabase valide en en-tête
   `Authorization: Bearer <token>` (401 sinon), et sont limités à 200 req/jour
   par compte, cumulés sur les trois endpoints.

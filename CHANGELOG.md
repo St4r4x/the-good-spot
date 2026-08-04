@@ -10,6 +10,21 @@ versionnage [semver](https://semver.org/lang/fr/).
   d'un logement), `frontend/e2e/` — voir la section « Tests e2e » du
   README pour le setup.
 
+## [1.2.0] - 2026-08-04
+
+### Added
+- `/pois` interroge désormais aussi Overpass (OpenStreetMap) en complément
+  de Geoapify, avec déduplication des points d'intérêt communs aux deux
+  sources (identité OSM, ou distance + similarité de nom en repli).
+- Cache géographique des points d'intérêt en base Postgres (tuiles ~1km,
+  TTL 30 jours), optionnel via la nouvelle variable d'env `DATABASE_URL` —
+  nouveau dossier `supabase/migrations/` pour la migration correspondante.
+
+### Changed
+- Le quota Geoapify (`200/day`) sur `/pois` n'est désormais décompté que
+  lorsqu'une requête déclenche un vrai appel Geoapify (cache manquant),
+  au lieu de systématiquement à chaque appel.
+
 ## [1.1.2] - 2026-08-04
 
 ### Security
