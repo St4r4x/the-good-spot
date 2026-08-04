@@ -92,10 +92,12 @@ export default function LoginPage() {
   }
 
   async function handleGoogle() {
-    await supabase!.auth.signInWithOAuth({
+    resetMessages();
+    const { error } = await supabase!.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/app` },
     });
+    if (error) setError(error.message);
   }
 
   if (!supabase) return null;
