@@ -65,12 +65,14 @@ describe("nearestPoi", () => {
   });
 
   it("returns the nearest POI of the given group with its distance in meters", () => {
-    const near = poi({ name: "École Proche", lat: 0.001, lon: 0 });
-    const far = poi({ name: "École Loin", lat: 0.01, lon: 0 });
-    const result = nearestPoi([0, 0], [far, near], "education");
+    // Point away from [0,0] with candidates offset on different axes (lon-only vs
+    // lat-only) so a future [lon,lat]/[lat,lon] swap would change the result.
+    const near = poi({ name: "École Proche", lat: 48.85, lon: 2.305 });
+    const far = poi({ name: "École Loin", lat: 48.86, lon: 2.3 });
+    const result = nearestPoi([2.3, 48.85], [far, near], "education");
     expect(result?.poi).toEqual(near);
     expect(result?.distanceMeters).toBeGreaterThan(0);
-    expect(result?.distanceMeters).toBeLessThan(200);
+    expect(result?.distanceMeters).toBeLessThan(500);
   });
 
   it("ignores POIs from other groups", () => {
