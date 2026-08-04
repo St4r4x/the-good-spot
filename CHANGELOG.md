@@ -5,7 +5,12 @@ versionnage [semver](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
-## [1.2.0] - 2026-07-15
+### Added
+- Test e2e Playwright du parcours critique (login → zone commune → test
+  d'un logement), `frontend/e2e/` — voir la section « Tests e2e » du
+  README pour le setup.
+
+## [1.2.0] - 2026-08-04
 
 ### Added
 - `/pois` interroge désormais aussi Overpass (OpenStreetMap) en complément
@@ -19,6 +24,17 @@ versionnage [semver](https://semver.org/lang/fr/).
 - Le quota Geoapify (`200/day`) sur `/pois` n'est désormais décompté que
   lorsqu'une requête déclenche un vrai appel Geoapify (cache manquant),
   au lieu de systématiquement à chaque appel.
+
+## [1.1.2] - 2026-08-04
+
+### Security
+- Bump transitive frontend dependencies (`brace-expansion`, `fast-uri`, `hono`,
+  `ip-address`, `undici`) via `npm audit fix`, then bump `next` 16.2.10 →
+  16.3.0 (bundled `postcss`/`sharp` follow) via `npm audit fix --force` —
+  resolves all 10 vulnerabilities (3 moderate, 7 high) flagged by CI's
+  `npm audit --audit-level=high`, down to 0. `next` is the only declared
+  dependency version that changed; `tsc --noEmit`, lint, the Vitest suite,
+  and `next build` all pass unchanged on 16.3.0.
 
 ## [1.1.1] - 2026-07-13
 
