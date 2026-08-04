@@ -49,13 +49,32 @@ Un compte Supabase est nécessaire pour utiliser l'app : renseigner
 JWT via l'endpoint JWKS `${SUPABASE_URL}/auth/v1/.well-known/jwks.json`), et
 créer `frontend/.env.local` avec :
 
-Pour activer le cache des points d'intérêt (recommandé, réduit fortement la
-consommation du quota Geoapify) : appliquer la migration
-`supabase/migrations/0001_poi_cache_tiles.sql` dans le SQL editor du projet
-Supabase, puis renseigner `DATABASE_URL` dans `.env` avec la connection
-string Postgres du pooler Supabase (Project Settings → Database →
-Connection string). Sans `DATABASE_URL`, `/pois` continue de fonctionner
-sans cache (comportement précédent).
+Le cache des points d'intérêt (réduit fortement la consommation du quota
+Geoapify) est activé par défaut en local : `docker compose up --build`
+démarre aussi un Postgres local (`db`), avec la migration
+`supabase/migrations/0001_poi_cache_tiles.sql` appliquée automatiquement au
+premier démarrage. `DATABASE_URL` est déjà pointé dessus dans
+`docker-compose.yml` — rien à configurer.
+
+Pour peupler ce cache local avec les POI Overpass (OSM) de toute
+l'Île-de-France, et développer `/pois` sans dépendre du réseau (Overpass,
+Geoapify) ni du projet Supabase distant :
+
+```bash
+docker compose exec backend python seed_idf_pois.py
+```
+
+Hors Île-de-France, `/pois` continue de fonctionner normalement (fetch live
++ cache), sans changement. Le cache expire après 30 jours — relancer la
+commande ci-dessus si besoin. La couverture peut être partielle sur une
+exécution donnée selon la disponibilité réelle de l'API publique Overpass ;
+relancer le script est sûr (idempotent) et remplit généralement plus de tuiles
+sur les exécutions ultérieures.
+
+Hors Docker (ex. déploiement prod), pointer `DATABASE_URL` vers un Postgres
+distant (ex. le pooler Supabase, Project Settings → Database → Connection
+string) après y avoir appliqué la même migration. Sans `DATABASE_URL`,
+`/pois` continue de fonctionner sans cache (comportement précédent).
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://wgfcywjykimvxkwpgdob.supabase.co

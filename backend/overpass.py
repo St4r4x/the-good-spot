@@ -58,7 +58,10 @@ def _group_for_tags(tags: dict[str, str]) -> str | None:
 async def fetch_overpass_pois(client: httpx.AsyncClient, bbox: str) -> list[dict]:
     try:
         resp = await client.post(
-            OVERPASS_URL, data={"data": _build_query(bbox)}, timeout=30
+            OVERPASS_URL,
+            data={"data": _build_query(bbox)},
+            timeout=30,
+            headers={"User-Agent": "the-good-spot-dev (github.com/St4r4x/the-good-spot)"},
         )
         resp.raise_for_status()
         elements = resp.json()["elements"]

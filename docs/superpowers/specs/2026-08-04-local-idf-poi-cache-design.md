@@ -86,12 +86,12 @@ backend:
 Ainsi `docker compose up --build` active le cache local par défaut pour
 tout le monde, sans configuration manuelle par développeur.
 
-## `backend/scripts/seed_idf_pois.py` (nouveau)
+## `backend/seed_idf_pois.py` (nouveau)
 
 Script autonome, exécuté manuellement (pas dans le lifecycle de l'app) :
 
 ```
-python backend/scripts/seed_idf_pois.py
+python backend/seed_idf_pois.py
 ```
 
 Logique :
