@@ -5,6 +5,11 @@ versionnage [semver](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+### Added
+- Test e2e Playwright du parcours critique (login → zone commune → test
+  d'un logement), `frontend/e2e/` — voir la section « Tests e2e » du
+  README pour le setup.
+
 ## [1.1.1] - 2026-07-13
 
 ### Changed

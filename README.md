@@ -87,3 +87,39 @@ mettre à jour si le positionnement ou le style visuel changent.
 - `/zone`, `/housing`, `/pois` exigent un JWT Supabase valide en en-tête
   `Authorization: Bearer <token>` (401 sinon), et sont limités à 200 req/jour
   par compte, cumulés sur les trois endpoints.
+
+## Tests e2e
+
+`frontend/e2e/` contient un test Playwright du parcours critique (login →
+zone commune → test d'un logement). Il tourne contre le frontend seul
+(`npm run dev`) — pas de backend, pas de docker-compose : les appels
+`/api/zone`, `/api/housing`, `/api/pois` sont mockés au niveau réseau
+(`frontend/e2e/mocks.ts`).
+
+**Setup, une seule fois** :
+1. Créer un compte dans le projet Supabase du `.env.local` (signup normal
+   via `/login` avec un email/mot de passe dédiés aux tests).
+2. Compléter l'onboarding une fois à la main avec ce compte, en ne
+   cochant **que** « Transports » comme moyen de transport (le test
+   suppose que ce mode est déjà sélectionné à l'ouverture de `/app`).
+3. Créer `frontend/.env.test.local` :
+   ```
+   E2E_TEST_EMAIL=<email du compte de test>
+   E2E_TEST_PASSWORD=<mot de passe du compte de test>
+   ```
+
+**Lancer le test** :
+```bash
+cd frontend
+npx playwright install chromium   # une fois
+npm run test:e2e
+```
+
+Sans `.env.test.local` (ou sans les deux variables), le test du parcours
+critique est *skip* proprement — seul le test de fumée (chargement de la
+page d'accueil) s'exécute.
+
+Chaque exécution écrit une nouvelle ligne dans `housing_searches` pour ce
+compte (le formulaire de test de logement insère à chaque soumission,
+comme en usage normal) — sans conséquence sur le test lui-même, mais à
+savoir si vous inspectez ce compte dans Supabase.
