@@ -9,7 +9,7 @@ import { WorkplaceForm } from "@/components/workplace-form";
 import { ApiError, fetchHousing, fetchIsochrone, fetchPois, type Poi, type PoiGroup, type TravelMode } from "@/lib/api";
 import { computeIntersection, computeUnion, type PolygonFeature } from "@/lib/geo";
 import { buildHousingMarker, removeHousingAt } from "@/lib/housing";
-import { poiBbox, poisInZone } from "@/lib/pois";
+import { nearestPoi, poiBbox, poisInZone } from "@/lib/pois";
 import { isOnboardingComplete } from "@/lib/profile";
 import { supabase } from "@/lib/supabase/client";
 import {
@@ -219,6 +219,10 @@ export function IsochroneApp() {
     }
   }
 
+  const nearestSchools = housingMarkers.map((h) =>
+    poiGroups.includes("education") ? nearestPoi([h.lon, h.lat], pois, "education") : null
+  );
+
   return (
     <div className="relative h-full">
       <IsochroneMap
@@ -228,6 +232,7 @@ export function IsochroneApp() {
         housingMarkers={housingMarkers}
         focus={focus}
         pois={pois}
+        nearestSchools={nearestSchools}
       />
 
       {work1 && work2 && (
@@ -260,6 +265,7 @@ export function IsochroneApp() {
           />
           <HousingList
             items={housingMarkers}
+            nearestSchools={nearestSchools}
             onRemove={handleRemoveHousing}
             onFocus={handleFocusHousing}
           />

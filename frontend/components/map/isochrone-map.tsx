@@ -11,6 +11,7 @@ import type { PolygonFeature } from "@/lib/geo";
 import { MAP_COLORS } from "@/lib/map-colors";
 import type { Poi, PoiGroup } from "@/lib/api";
 import { POI_GROUP_ICONS, POI_GROUP_LABELS, poiLabel } from "@/lib/pois";
+import type { NearestPoi } from "@/lib/pois";
 export type { HousingMarker } from "@/lib/housing";
 import type { HousingMarker } from "@/lib/housing";
 
@@ -27,6 +28,7 @@ type IsochroneMapProps = {
   housingMarkers: HousingMarker[];
   focus: { index: number; token: number } | null;
   pois: Poi[];
+  nearestSchools: (NearestPoi | null)[];
 };
 
 const DEFAULT_CENTER: [number, number] = [48.8566, 2.3522];
@@ -59,6 +61,7 @@ export function IsochroneMap({
   housingMarkers,
   focus,
   pois,
+  nearestSchools,
 }: IsochroneMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -109,7 +112,8 @@ export function IsochroneMap({
       layersRef.current.push(intersectionLayer);
     }
 
-    housingMarkers.forEach((h) => {
+    housingMarkers.forEach((h, i) => {
+      const nearestSchool = nearestSchools[i];
       const marker = L.circleMarker([h.lat, h.lon], {
         radius: 9,
         color: h.inZone ? MAP_COLORS.zone1 : "#8a8f8f",
@@ -123,7 +127,10 @@ export function IsochroneMap({
             `<span style="color:${h.inZone ? MAP_COLORS.zone1 : "#8a5230"};font-weight:600">` +
             `${h.inZone ? "Dans la zone" : "Hors zone"}</span><br>` +
             `Trajet lieu 1 : ${h.timeToWork1Minutes} min<br>` +
-            `Trajet lieu 2 : ${h.timeToWork2Minutes} min`
+            `Trajet lieu 2 : ${h.timeToWork2Minutes} min` +
+            (nearestSchool
+              ? `<br>École la plus proche : ${escapeHtml(poiLabel(nearestSchool.poi))}, à ${nearestSchool.distanceMeters} m`
+              : "")
         );
       layersRef.current.push(marker);
       housingLayersRef.current.push(marker);
@@ -131,7 +138,7 @@ export function IsochroneMap({
     });
 
     map.fitBounds(bounds, { padding: [24, 24] });
-  }, [work1, work2, intersection, housingMarkers]);
+  }, [work1, work2, intersection, housingMarkers, nearestSchools]);
 
   useEffect(() => {
     const map = mapRef.current;
