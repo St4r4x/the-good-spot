@@ -1,16 +1,19 @@
 "use client";
 
 import type { HousingMarker } from "@/lib/housing";
+import type { NearestPoi } from "@/lib/pois";
+import { poiLabel } from "@/lib/pois";
 import { cn } from "@/lib/utils";
-import { CircleAlert, CircleCheck, X } from "lucide-react";
+import { CircleAlert, CircleCheck, GraduationCap, X } from "lucide-react";
 
 type HousingListProps = {
   items: HousingMarker[];
+  nearestSchools: (NearestPoi | null)[];
   onRemove: (index: number) => void;
   onFocus: (index: number) => void;
 };
 
-export function HousingList({ items, onRemove, onFocus }: HousingListProps) {
+export function HousingList({ items, nearestSchools, onRemove, onFocus }: HousingListProps) {
   if (items.length === 0) return null;
   return (
     <ul className="flex flex-col gap-2 px-4 pb-4">
@@ -49,6 +52,13 @@ export function HousingList({ items, onRemove, onFocus }: HousingListProps) {
           <p className="mt-0.5 text-xs text-muted-foreground">
             Lieu 1 : {h.timeToWork1Minutes} min · Lieu 2 : {h.timeToWork2Minutes} min
           </p>
+          {nearestSchools[i] && (
+            <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+              <GraduationCap aria-hidden className="size-3.5 shrink-0" />
+              École la plus proche : {poiLabel(nearestSchools[i]!.poi)}, à{" "}
+              {nearestSchools[i]!.distanceMeters} m
+            </p>
+          )}
         </li>
       ))}
     </ul>

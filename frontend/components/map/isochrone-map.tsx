@@ -11,6 +11,7 @@ import type { PolygonFeature } from "@/lib/geo";
 import { MAP_COLORS } from "@/lib/map-colors";
 import type { Poi, PoiGroup } from "@/lib/api";
 import { POI_GROUP_ICONS, POI_GROUP_LABELS, poiLabel } from "@/lib/pois";
+import type { NearestPoi } from "@/lib/pois";
 export type { HousingMarker } from "@/lib/housing";
 import type { HousingMarker } from "@/lib/housing";
 
@@ -27,6 +28,7 @@ type IsochroneMapProps = {
   housingMarkers: HousingMarker[];
   focus: { index: number; token: number } | null;
   pois: Poi[];
+  nearestSchools: (NearestPoi | null)[];
 };
 
 const DEFAULT_CENTER: [number, number] = [48.8566, 2.3522];
@@ -52,6 +54,19 @@ function poiDivIcon(group: PoiGroup): L.DivIcon {
   });
 }
 
+function housingPopupHtml(h: HousingMarker, nearestSchool: NearestPoi | null): string {
+  return (
+    `<strong>${escapeHtml(h.resolvedAddress)}</strong><br>` +
+    `<span style="color:${h.inZone ? MAP_COLORS.zone1 : "#8a5230"};font-weight:600">` +
+    `${h.inZone ? "Dans la zone" : "Hors zone"}</span><br>` +
+    `Trajet lieu 1 : ${h.timeToWork1Minutes} min<br>` +
+    `Trajet lieu 2 : ${h.timeToWork2Minutes} min` +
+    (nearestSchool
+      ? `<br>École la plus proche : ${escapeHtml(poiLabel(nearestSchool.poi))}, à ${nearestSchool.distanceMeters} m`
+      : "")
+  );
+}
+
 export function IsochroneMap({
   work1,
   work2,
@@ -59,6 +74,7 @@ export function IsochroneMap({
   housingMarkers,
   focus,
   pois,
+  nearestSchools,
 }: IsochroneMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -109,7 +125,7 @@ export function IsochroneMap({
       layersRef.current.push(intersectionLayer);
     }
 
-    housingMarkers.forEach((h) => {
+    housingMarkers.forEach((h, i) => {
       const marker = L.circleMarker([h.lat, h.lon], {
         radius: 9,
         color: h.inZone ? MAP_COLORS.zone1 : "#8a8f8f",
@@ -118,20 +134,25 @@ export function IsochroneMap({
         weight: 2,
       })
         .addTo(map)
-        .bindPopup(
-          `<strong>${escapeHtml(h.resolvedAddress)}</strong><br>` +
-            `<span style="color:${h.inZone ? MAP_COLORS.zone1 : "#8a5230"};font-weight:600">` +
-            `${h.inZone ? "Dans la zone" : "Hors zone"}</span><br>` +
-            `Trajet lieu 1 : ${h.timeToWork1Minutes} min<br>` +
-            `Trajet lieu 2 : ${h.timeToWork2Minutes} min`
-        );
+        .bindPopup(housingPopupHtml(h, nearestSchools[i]));
       layersRef.current.push(marker);
       housingLayersRef.current.push(marker);
       bounds = bounds.extend([h.lat, h.lon]);
     });
 
     map.fitBounds(bounds, { padding: [24, 24] });
+    // nearestSchools intentionally omitted: it's only read here for initial popup
+    // content, and changes to it alone are patched by the effect below without
+    // rebuilding the whole map (see finding: full rebuild on POI-filter toggle).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [work1, work2, intersection, housingMarkers]);
+
+  useEffect(() => {
+    housingMarkers.forEach((h, i) => {
+      const marker = housingLayersRef.current[i];
+      if (marker) marker.setPopupContent(housingPopupHtml(h, nearestSchools[i]));
+    });
+  }, [nearestSchools, housingMarkers]);
 
   useEffect(() => {
     const map = mapRef.current;

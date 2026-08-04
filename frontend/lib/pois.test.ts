@@ -1,7 +1,7 @@
 import * as turf from "@turf/turf";
 import { describe, expect, it } from "vitest";
 import type { Poi } from "./api";
-import { poiBbox, poiLabel, poisInZone } from "./pois";
+import { nearestPoi, poiBbox, poiLabel, poisInZone } from "./pois";
 
 const square = (cx: number, cy: number, half: number) =>
   turf.polygon([
@@ -48,5 +48,36 @@ describe("poiLabel", () => {
     expect(poiLabel({ lat: 0, lon: 0, name: null, group: "sport" })).toBe(
       "Lieu de sport"
     );
+  });
+});
+
+describe("nearestPoi", () => {
+  const poi = (over: Partial<Poi>): Poi => ({
+    lat: 0,
+    lon: 0,
+    name: "Test",
+    group: "education",
+    ...over,
+  });
+
+  it("returns null when there is no POI of the given group", () => {
+    expect(nearestPoi([0, 0], [poi({ group: "sport" })], "education")).toBeNull();
+  });
+
+  it("returns the nearest POI of the given group with its distance in meters", () => {
+    // Point away from [0,0] with candidates offset on different axes (lon-only vs
+    // lat-only) so a future [lon,lat]/[lat,lon] swap would change the result.
+    const near = poi({ name: "École Proche", lat: 48.85, lon: 2.305 });
+    const far = poi({ name: "École Loin", lat: 48.86, lon: 2.3 });
+    const result = nearestPoi([2.3, 48.85], [far, near], "education");
+    expect(result?.poi).toEqual(near);
+    expect(result?.distanceMeters).toBeGreaterThan(0);
+    expect(result?.distanceMeters).toBeLessThan(500);
+  });
+
+  it("ignores POIs from other groups", () => {
+    const school = poi({ group: "education", lat: 0.01, lon: 0 });
+    const gym = poi({ group: "sport", lat: 0.0001, lon: 0 });
+    expect(nearestPoi([0, 0], [school, gym], "education")?.poi).toEqual(school);
   });
 });

@@ -9,6 +9,10 @@ versionnage [semver](https://semver.org/lang/fr/).
 - Test e2e Playwright du parcours critique (login → zone commune → test
   d'un logement), `frontend/e2e/` — voir la section « Tests e2e » du
   README pour le setup.
+- Badge « école la plus proche » (distance à vol d'oiseau) sur un logement
+  testé, affiché dans la liste et le popup carte — visible seulement si le
+  filtre POI « Éducation » est actif ; aucune donnée persistée, aucun appel
+  API supplémentaire.
 
 ## [1.2.0] - 2026-08-04
 
