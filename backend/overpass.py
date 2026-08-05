@@ -55,7 +55,7 @@ def _group_for_tags(tags: dict[str, str]) -> str | None:
     return None
 
 
-async def fetch_overpass_pois(client: httpx.AsyncClient, bbox: str) -> list[dict]:
+async def fetch_overpass_pois(client: httpx.AsyncClient, bbox: str) -> list[dict] | None:
     try:
         resp = await client.post(
             OVERPASS_URL,
@@ -66,7 +66,7 @@ async def fetch_overpass_pois(client: httpx.AsyncClient, bbox: str) -> list[dict
         resp.raise_for_status()
         elements = resp.json()["elements"]
     except (httpx.HTTPError, KeyError, ValueError):
-        return []
+        return None
 
     results = []
     for element in elements:
