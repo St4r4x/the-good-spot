@@ -304,6 +304,44 @@ def test_pois_merges_geoapify_and_overpass_without_duplicates(
 
 
 @respx.mock
+def test_pois_does_not_cache_tiles_when_overpass_fails(
+    client, auth_headers, fake_pool
+) -> None:
+    respx.get(PLACES_URL).mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "features": [
+                    {
+                        "properties": {
+                            "name": "Pharmacie du Village",
+                            "categories": ["healthcare", "healthcare.pharmacy"],
+                        },
+                        "geometry": {"coordinates": [2.3538958, 48.8591061]},
+                    }
+                ]
+            },
+        )
+    )
+    respx.post(OVERPASS_URL).mock(
+        return_value=httpx.Response(500, text="server too busy")
+    )
+
+    resp = client.get(
+        "/pois",
+        params={"bbox": "2.35,48.85,2.37,48.87", "groups": "health"},
+        headers=auth_headers(),
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert [poi["name"] for poi in body["pois"]] == ["Pharmacie du Village"]
+    # Overpass failed for this batch — nothing should have been persisted,
+    # so the tiles stay misses and get retried live on the next request.
+    assert fake_pool.rows == {}
+
+
+@respx.mock
 def test_pois_partial_cache_hit_does_not_duplicate_pois_from_cached_tiles(
     client, auth_headers, fake_pool
 ) -> None:

@@ -335,7 +335,14 @@ async def pois(
             if (poi := _geoapify_feature_to_poi(feature, list(POI_GROUPS.keys())))
             is not None
         ]
-        fresh_pois = dedupe_pois(geoapify_pois + overpass_pois)
+        # overpass_pois is None when the Overpass fetch itself failed (network
+        # error, HTTP error, bad JSON) — as opposed to succeeding and finding
+        # nothing ([]). In that case we still answer this request with
+        # whatever Geoapify found, but we must not cache the batch: caching a
+        # failure as "0 POIs here" for TILE_TTL_DAYS would hide real POIs for
+        # 30 days behind one transient Overpass outage.
+        overpass_ok = overpass_pois is not None
+        fresh_pois = dedupe_pois(geoapify_pois + (overpass_pois or []))
 
         pois_by_tile: dict[tuple[int, int], list[dict]] = {
             tile: [] for tile in missing_tiles
@@ -344,7 +351,8 @@ async def pois(
             tile = tile_for_point(poi["lat"], poi["lon"])
             if tile in pois_by_tile:
                 pois_by_tile[tile].append(poi)
-        await upsert_tiles(_db_pool, pois_by_tile)
+        if overpass_ok:
+            await upsert_tiles(_db_pool, pois_by_tile)
 
         # Only the POIs actually bucketed into a missing tile belong in the
         # response here — fresh_pois itself is drawn from fetch_bbox, which
