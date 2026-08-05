@@ -52,30 +52,30 @@ async def test_fetch_overpass_pois_maps_tags_to_groups() -> None:
 
 @pytest.mark.asyncio
 @respx.mock
-async def test_fetch_overpass_pois_returns_empty_list_on_timeout() -> None:
+async def test_fetch_overpass_pois_returns_none_on_timeout() -> None:
     respx.post(OVERPASS_URL).mock(side_effect=httpx.TimeoutException("timed out"))
     async with httpx.AsyncClient() as client:
         result = await fetch_overpass_pois(client, "2.30,48.80,2.40,48.90")
-    assert result == []
+    assert result is None
 
 
 @pytest.mark.asyncio
 @respx.mock
-async def test_fetch_overpass_pois_returns_empty_list_on_http_error() -> None:
+async def test_fetch_overpass_pois_returns_none_on_http_error() -> None:
     respx.post(OVERPASS_URL).mock(
         return_value=httpx.Response(500, text="server too busy")
     )
     async with httpx.AsyncClient() as client:
         result = await fetch_overpass_pois(client, "2.30,48.80,2.40,48.90")
-    assert result == []
+    assert result is None
 
 
 @pytest.mark.asyncio
 @respx.mock
-async def test_fetch_overpass_pois_returns_empty_list_on_invalid_json() -> None:
+async def test_fetch_overpass_pois_returns_none_on_invalid_json() -> None:
     respx.post(OVERPASS_URL).mock(
         return_value=httpx.Response(200, text="<html>not json</html>")
     )
     async with httpx.AsyncClient() as client:
         result = await fetch_overpass_pois(client, "2.30,48.80,2.40,48.90")
-    assert result == []
+    assert result is None

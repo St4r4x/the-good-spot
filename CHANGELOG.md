@@ -28,6 +28,18 @@ versionnage [semver](https://semver.org/lang/fr/).
   ignorés par la gestion d'erreur existante — tout appel Overpass (seed
   script et `/pois` live) retournait zéro résultat. Corrigé en fixant un
   User-Agent conforme à la politique d'utilisation d'Overpass.
+- `backend/overpass.py::fetch_overpass_pois` avalait tout échec (timeout,
+  erreur HTTP, JSON invalide) en retournant `[]`, indiscernable d'une
+  requête ayant réellement abouti sans trouver de POI. `/pois` cachait donc
+  ce `[]` 30 jours (`TILE_TTL_DAYS`) même quand Overpass avait juste échoué
+  — une zone dense pouvait devenir invisible dans l'app pendant 30 jours à
+  cause d'un seul timeout transitoire (928 tuiles touchées lors d'un
+  incident réel sur une bbox large). `fetch_overpass_pois` retourne
+  maintenant `None` sur échec (vs `[]` sur un succès réel sans résultat) et
+  `/pois` ne persiste plus les tuiles d'un batch dont Overpass a échoué —
+  elles restent non cachées et sont retentées en live à la requête
+  suivante. Le cas légitime (Overpass réussit, trouve 0 POI) reste caché 30
+  jours comme avant.
 
 ## [1.3.0] - 2026-08-04
 
